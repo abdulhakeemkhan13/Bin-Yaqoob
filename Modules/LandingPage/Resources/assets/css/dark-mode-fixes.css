@@ -1,0 +1,109 @@
+/* Dark Mode Style Fixes */
+
+/* Improve hover contrast for review cards */
+.review-card .review-block > div:hover {
+    background-color: rgba(81, 69, 157, 0.3) !important;
+}
+
+/* Darker background elements */
+.card {
+    background-color: #292A33 !important;
+}
+
+/* Fix card footer borders */
+.card .card-footer {
+    border-top: 1px solid #3E3F4A !important;
+}
+
+/* Improved background color for hover states */
+.testimonial-card .review-block > div:hover {
+    background-color: rgba(81, 69, 157, 0.3) !important;
+}
+
+/* Fix form elements for dark mode */
+input, select, textarea {
+    background-color: #30313b !important;
+    color: #fff !important;
+    border-color: #3E3F4A !important;
+}
+
+/* Card and container backgrounds */
+.bg-white {
+    background-color: #292A33 !important;
+}
+
+/* Text colors */
+.text-dark {
+    color: #e0e0e0 !important;
+}
+
+/* Fix button text contrast */
+.btn-outline-primary {
+    color: #8583fb !important;
+}
+
+.btn-outline-primary:hover {
+    color: #fff !important;
+}
+
+/* Fix the linter errors */
+:root {
+    --bs-card-height: auto;
+    --bs-breadcrumb-border-radius: 0.25rem;
+}
+
+/* Fix table borders */
+.table td, .table th {
+    border-color: #3E3F4A !important;
+}
+
+/* Fixes for inputs and form elements */
+.form-control {
+    background-color: #30313b !important;
+    border-color: #3E3F4A !important;
+    color: #fff !important;
+}
+
+.form-control:focus {
+    background-color: #30313b !important;
+    border-color: #51459d !important;
+    color: #fff !important;
+}
+
+/* Make borders more visible */
+.border {
+    border-color: #3E3F4A !important;
+}
+
+.border-right, .border-left, .border-top, .border-bottom {
+    border-color: #3E3F4A !important;
+}
+
+/* Fix shadows for dark mode */
+.shadow, .shadow-sm, .shadow-lg {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Fix dropdown menus */
+.dropdown-menu {
+    background-color: #292A33 !important;
+    border-color: #3E3F4A !important;
+}
+
+.dropdown-item {
+    color: #e0e0e0 !important;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    background-color: rgba(81, 69, 157, 0.2) !important;
+}
+
+/* Fix modals */
+.modal-content {
+    background-color: #292A33 !important;
+    border-color: #3E3F4A !important;
+}
+
+.modal-header, .modal-footer {
+    border-color: #3E3F4A !important;
+} 
