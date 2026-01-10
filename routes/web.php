@@ -913,6 +913,15 @@ Route::group(['middleware' => ['verified']], function () {
     Route::post('import/deals', [DealController::class, 'import'])->name('deals.import');
     Route::get('import/deals/file', [DealController::class, 'importFile'])->name('deals.file.import');
 
+    // Unit Selection AJAX routes
+    Route::post('/deals/floors-by-project', [DealController::class, 'getFloorsByProject'])->name('deals.floors.json')->middleware(['auth', 'XSS']);
+    Route::post('/deals/units-by-floor', [DealController::class, 'getUnitsByFloor'])->name('deals.units.json')->middleware(['auth', 'XSS']);
+
+    // Deal to Contract Conversion
+    Route::get('/deals/{id}/convert-to-contract', [DealController::class, 'showConvertToContract'])->name('deals.convert.contract')->middleware(['auth', 'XSS']);
+    Route::post('/deals/{id}/convert-to-contract', [DealController::class, 'convertToContract'])->name('deals.convert.contract.store')->middleware(['auth', 'XSS']);
+    Route::post('/deals/payment-plans-by-project', [DealController::class, 'getPaymentPlansByProject'])->name('deals.payment.plans.json')->middleware(['auth', 'XSS']);
+
     // Deal Calls
 
     Route::get('/deals/{id}/call', [DealController::class, 'callCreate'])->name('deals.calls.create')->middleware(['auth', 'XSS']);
@@ -1923,6 +1932,35 @@ Route::group(['middleware' => ['verified']], function () {
     Route::get('request-amount-cancel/{id}', [ReferralProgramController::class, 'requestCancel'])->name('request.amount.cancel');
     Route::post('request-amount-store/{id}', [ReferralProgramController::class, 'requestedAmountStore'])->name('request.amount.store');
     Route::get('request-amount/{id}/{status}', [ReferralProgramController::class, 'requestedAmount'])->name('amount.request');
+
+    // Real Estate Management System Routes
+    Route::prefix('re-projects')->middleware(['auth', 'XSS', 'revalidate'])->group(function () {
+        Route::get('/', [\App\Http\Controllers\REProjectController::class, 'index'])->name('re-projects.index');
+        Route::get('/create', [\App\Http\Controllers\REProjectController::class, 'create'])->name('re-projects.create');
+        Route::post('/basic-info', [\App\Http\Controllers\REProjectController::class, 'storeBasicInfo'])->name('re-projects.basic-info');
+        Route::post('/{id}/floors', [\App\Http\Controllers\REProjectController::class, 'storeFloors'])->name('re-projects.floors');
+        Route::get('/{id}/floors', [\App\Http\Controllers\REProjectController::class, 'getFloors'])->name('re-projects.get-floors');
+        Route::post('/{id}/units', [\App\Http\Controllers\REProjectController::class, 'storeUnits'])->name('re-projects.units');
+        Route::post('/{id}/assign-plans', [\App\Http\Controllers\REProjectController::class, 'assignPaymentPlans'])->name('re-projects.assign-plans');
+        Route::post('/{id}/submit', [\App\Http\Controllers\REProjectController::class, 'finalSubmit'])->name('re-projects.submit');
+        Route::get('/{id}/data', [\App\Http\Controllers\REProjectController::class, 'getProjectData'])->name('re-projects.data');
+        Route::get('/{id}/units/{unitId}', [\App\Http\Controllers\REProjectController::class, 'getUnit'])->name('re-projects.get-unit');
+        Route::put('/{id}/units/{unitId}', [\App\Http\Controllers\REProjectController::class, 'updateUnit'])->name('re-projects.update-unit');
+        Route::get('/{id}/floors-json', [\App\Http\Controllers\REProjectController::class, 'getFloorsJson'])->name('re-projects.floors-json');
+        Route::get('/floors/{floorId}/units-json', [\App\Http\Controllers\REProjectController::class, 'getUnitsJson'])->name('re-projects.units-json');
+        Route::get('/{id}', [\App\Http\Controllers\REProjectController::class, 'show'])->name('re-projects.show');
+    });
+
+    // Payment Plans Master Module
+    Route::prefix('re-payment-plans')->middleware(['auth', 'XSS', 'revalidate'])->group(function () {
+        Route::get('/', [\App\Http\Controllers\RePaymentPlanController::class, 'index'])->name('re-payment-plans.index');
+        Route::get('/create', [\App\Http\Controllers\RePaymentPlanController::class, 'create'])->name('re-payment-plans.create');
+        Route::post('/', [\App\Http\Controllers\RePaymentPlanController::class, 'store'])->name('re-payment-plans.store');
+        Route::get('/{id}/edit', [\App\Http\Controllers\RePaymentPlanController::class, 'edit'])->name('re-payment-plans.edit');
+        Route::put('/{id}', [\App\Http\Controllers\RePaymentPlanController::class, 'update'])->name('re-payment-plans.update');
+        Route::delete('/{id}', [\App\Http\Controllers\RePaymentPlanController::class, 'destroy'])->name('re-payment-plans.destroy');
+        Route::get('/active', [\App\Http\Controllers\RePaymentPlanController::class, 'getActivePlans'])->name('re-payment-plans.active');
+    });
 });
 
 

@@ -1,0 +1,32 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('re_floors', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('re_project_id');
+            $table->string('floor_number');
+            $table->string('floor_name')->nullable();
+            $table->integer('total_units')->default(0);
+            $table->foreign('re_project_id')->references('id')->on('re_projects')->onDelete('cascade');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('re_floors');
+    }
+};

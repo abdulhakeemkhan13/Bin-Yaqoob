@@ -19,6 +19,14 @@ class Contract extends Model
         'company_signature',
         'client_signature',
         'created_by',
+        'project_id',
+        'owned_by',
+        'payment_plan_id',
+        'num_installments',
+        'down_payment_percent',
+        'down_payment_amount',
+        'deal_id',
+        'customer_id',
     ];
 
     public static $status = [
@@ -40,6 +48,12 @@ class Contract extends Model
     {
         return $this->hasOne('App\Models\ContractType', 'id', 'type');
     }
+
+    public function customer()
+    {
+        return $this->hasOne('App\Models\Customer', 'id', 'customer_id');
+    }
+
     public static function getContractSummary($contracts)
     {
         $total = 0;

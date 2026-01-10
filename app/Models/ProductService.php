@@ -21,6 +21,8 @@ class ProductService extends Model
         'sale_chartaccount_id',
         'expense_chartaccount_id',
         'created_by',
+        'warehouse_id',
+        'project_unit_id'
     ];
 
     public function taxes()
@@ -37,6 +39,12 @@ class ProductService extends Model
     {
         return $this->hasOne('App\Models\ProductServiceCategory', 'id', 'category_id');
     }
+
+    public function projectUnit()
+    {
+        return $this->hasOne('App\Models\ReUnit', 'id', 'project_unit_id');
+    }
+
     public function warehouse()
     {
         return $this->hasOne('App\Models\Warehouse', 'id', 'category_id');

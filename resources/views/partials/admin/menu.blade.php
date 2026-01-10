@@ -134,7 +134,7 @@
             // Optionally, you can also re-initialize feather icons if you are using Feather Icons
             // feather.replace();
         });
-        
+
         const dashItems = document.querySelectorAll('.dash-item');
 
         dashItems.forEach(item => {
@@ -171,7 +171,7 @@
                     alt="{{ config('app.name', 'CSuite') }}" class="logo logo-lg">
             @endif
             <img src="{{ $logo . '/' . (isset($company_favicon) && !empty($company_favicon) ? $company_favicon : 'logo-light.png') }}"
-            alt="{{ config('app.name', 'Coworkit-Co') }}" class="logo logo-lg"  id="fa">
+                alt="{{ config('app.name', 'Coworkit-Co') }}" class="logo logo-lg" id="fa">
         </a>
     </div>
     <div class="nav_actions_bar">
@@ -186,10 +186,10 @@
 
 
                 .abc {
-                    margin: 0px !important; 
+                    margin: 0px !important;
                 }
 
-                .main-logo{
+                .main-logo {
                     margin: 20px 0px !important;
                 }
 
@@ -201,11 +201,13 @@
                     background-color: var(--used-color);
                 }
 
-                .menu-icon:hover.menu-icon svg , .menu-icon:hover svg {
+                .menu-icon:hover.menu-icon svg,
+                .menu-icon:hover svg {
                     stroke: white !important;
                 }
 
-                .menu-icon:hover.menu-icon svg , .menu-icon:hover i {
+                .menu-icon:hover.menu-icon svg,
+                .menu-icon:hover i {
                     color: white !important;
                 }
 
@@ -234,8 +236,10 @@
                 <a href="#" id="pinButton" class="pin-button menu-icon" data-bs-toggle="tooltip"
                     title="Pin/Unpin Menu">
                     <i class="ti ti-lock" style="font-size: 20px;" id="pin"></i>
-                    <svg xmlns="http://www.w3.org/2000/svg" id="unpin" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--bs-link-color)" style="width: 20px; height: 20px; display:none;">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75A4.5 4.5 0 008.78 4.2m4.47 6.3H5.25v10.5h13.5V10.5h-6.75zM12 15v2.25" />
+                    <svg xmlns="http://www.w3.org/2000/svg" id="unpin" fill="none" viewBox="0 0 24 24"
+                        stroke-width="2" stroke="var(--bs-link-color)" style="width: 20px; height: 20px; display:none;">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M16.5 10.5V6.75A4.5 4.5 0 008.78 4.2m4.47 6.3H5.25v10.5h13.5V10.5h-6.75zM12 15v2.25" />
                     </svg>
                     {{-- <i data-feather="lock" class="me-2"></i>
                     <i data-feather="unlock" class="me-2" style="display: none;"></i> <!-- Initially hidden --> --}}
@@ -257,10 +261,10 @@
 
             <li class="list-inline-item abc" id="changeThemeBtn">
                 <a href="#" id="themeChange" class="menu-icon" data-bs-toggle="tooltip" title="light/Dark mode">
-                    @if($setting['cust_darklayout'] && $setting['cust_darklayout'] == 'off')
-                        <i  class="ti ti-moon" style="font-size: 20px;"></i>
+                    @if ($setting['cust_darklayout'] && $setting['cust_darklayout'] == 'off')
+                        <i class="ti ti-moon" style="font-size: 20px;"></i>
                     @else
-                        <i  class="ti ti-sun" style="font-size: 20px;"></i>
+                        <i class="ti ti-sun" style="font-size: 20px;"></i>
                     @endif
                 </a>
             </li>
@@ -441,7 +445,7 @@
             }
         </style>
         <script src="{{ asset('public/siri/siriwave.umd.js') }}"></script>
-        {{--<button id="ciaBtn" class="cia_assistant">Ai</button>--}}
+        {{-- <button id="ciaBtn" class="cia_assistant">Ai</button> --}}
         <div class="ai-prmopt">
             {{-- <div class="">
                 <div class="mic">
@@ -547,10 +551,8 @@
                                         @endcan
                                         @if (Gate::check('income report') ||
                                                 Gate::check('expense report') ||
-
-                                                Gate::check('tax report') ||                                              
+                                                Gate::check('tax report') ||
                                                 Gate::check('invoice report') ||
-    
                                                 Gate::check('stock report') ||
                                                 Gate::check('invoice report') ||
                                                 Gate::check('manage transaction') ||
@@ -569,16 +571,16 @@
                                                         </li>
                                                     @endcan
                                                     {{-- @can('check list report') --}}
-                                                        {{-- <li
+                                                    {{-- <li
                                                              class="dash-item {{ Request::route()->getName() == 'report.cheque.list' ? ' active' : '' }}">
                                                              <a class="dash-link"
                                                                  href="{{ route('report.cheque.list') }}">{{ __('Cheque List') }}</a>
-                                                         </li>--}}
-                                                        {{--<li
+                                                         </li> --}}
+                                                    {{-- <li
                                                         class="dash-item {{ Request::route()->getName() == 'report.cheque.list' ? ' active' : '' }}">
                                                         <a class="dash-link"
                                                             href="{{ route('report.cheque.list') }}">{{ __('Minute Sheet') }}</a>
-                                                    </li>--}}
+                                                    </li> --}}
                                                     {{-- @endcan --}}
                                                     @can('invoice report')
                                                         <li
@@ -809,6 +811,28 @@
                 <!--------------------- End Dashboard ----------------------------------->
 
 
+                <!--------------------- Start Real Estate Management ----------------------------------->
+                <li
+                    class="dash-item dash-hasmenu {{ Request::segment(1) == 're-projects' || Request::segment(1) == 're-payment-plans' ? 'active dash-trigger' : '' }}">
+                    <a href="#!" class="dash-link">
+                        <span class="dash-micon">
+                            <i class="ti ti-building"></i>
+                        </span>
+                        <span class="dash-mtext">{{ __('Real Estate') }}</span>
+                        <span class="dash-arrow"><i data-feather="chevron-right"></i></span>
+                    </a>
+                    <ul class="dash-submenu">
+                        <li class="dash-item {{ Request::segment(1) == 're-projects' ? 'active' : '' }}">
+                            <a class="dash-link" href="{{ route('re-projects.index') }}">{{ __('Projects') }}</a>
+                        </li>
+                        <li class="dash-item {{ Request::segment(1) == 're-payment-plans' ? 'active' : '' }}">
+                            <a class="dash-link"
+                                href="{{ route('re-payment-plans.index') }}">{{ __('Payment Plans') }}</a>
+                        </li>
+                    </ul>
+                </li>
+                <!--------------------- End Real Estate Management ----------------------------------->
+
                 <!--------------------- Start HRM ----------------------------------->
 
                 @if (!empty($userPlan) && $userPlan->hrm == 1)
@@ -876,29 +900,28 @@
                                 </span>
                             </a>
                             <ul class="dash-submenu">
-                                @if(\Auth::user()->id != '41')
-                                <li
-                                    class="dash-item  {{ Request::segment(1) == 'employee' ? 'active dash-trigger' : '' }}   ">
-                                    @if (\Auth::user()->type == 'Employee')
-                                        @php
-                                            $employee = App\Models\Employee::where(
-                                                'user_id',
-                                                \Auth::user()->id,
-                                            )->first();
-                                        @endphp
-                                        <a class="dash-link"
-                                            href="{{ route('employee.show', \Illuminate\Support\Facades\Crypt::encrypt($employee->id)) }}">{{ __('Employee') }}</a>
-                                    @else
-                                        
+                                @if (\Auth::user()->id != '41')
+                                    <li
+                                        class="dash-item  {{ Request::segment(1) == 'employee' ? 'active dash-trigger' : '' }}   ">
+                                        @if (\Auth::user()->type == 'Employee')
+                                            @php
+                                                $employee = App\Models\Employee::where(
+                                                    'user_id',
+                                                    \Auth::user()->id,
+                                                )->first();
+                                            @endphp
+                                            <a class="dash-link"
+                                                href="{{ route('employee.show', \Illuminate\Support\Facades\Crypt::encrypt($employee->id)) }}">{{ __('Employee') }}</a>
+                                        @else
                                             <a href="{{ route('employee.index') }}" class="dash-link">
                                                 {{ __('Employee Setup') }}
                                             </a>
-                                    @endif
-                                </li>
+                                        @endif
+                                    </li>
                                 @endif
-                                
+
                                 @if (Gate::check('manage employee'))
-                                {{-- <li
+                                    {{-- <li
                                     class="dash-item dash-hasmenu  {{ Request::segment(1) == 'leaveto' || Request::segment(1) == 'payslip' ? 'active dash-trigger' : '' }}">
                                     <a class="dash-link" href="#">{{ __('Report To Setup') }}<span
                                             class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
@@ -907,7 +930,7 @@
                                             <a class="dash-link"
                                                 href="{{ route('leaveto') }}">{{ __('Leaves') }}</a>
                                         </li> --}}
-                                        {{-- <li class="dash-item {{ request()->is('payslip*') ? 'active' : '' }}">
+                                    {{-- <li class="dash-item {{ request()->is('payslip*') ? 'active' : '' }}">
                                             <a class="dash-link"
                                                 href="{{ route('payslip.index') }}">{{ __('Payslip') }}</a>
                                         </li> --}}
@@ -1481,15 +1504,15 @@
                                             </ul>
                                         </li>
                                         <!-- <li
-                                            class="dash-item {{ Request::route()->getName() == 'journal-entry.edit' ||
-                                            Request::route()->getName() == 'journal-entry.create' ||
-                                            Request::route()->getName() == 'journal-entry.index' ||
-                                            Request::route()->getName() == 'journal-entry.show'
-                                                ? ' active'
-                                                : '' }}">
-                                            <a class="dash-link"
-                                                href="{{ route('journal-entry.index') }}">{{ __('Journal Account') }}</a>
-                                        </li> -->
+                                    class="dash-item {{ Request::route()->getName() == 'journal-entry.edit' ||
+                                    Request::route()->getName() == 'journal-entry.create' ||
+                                    Request::route()->getName() == 'journal-entry.index' ||
+                                    Request::route()->getName() == 'journal-entry.show'
+                                        ? ' active'
+                                        : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('journal-entry.index') }}">{{ __('Journal Account') }}</a>
+                                </li> -->
                                         <li
                                             class="dash-item {{ Request::route()->getName() == 'report.ledger' ? ' active' : '' }}">
                                             <a class="dash-link"
@@ -1561,29 +1584,30 @@
             <!--------------------- End Account ----------------------------------->
             @php
                 $user = Auth::user();
+                $userDesignation = '';
                 $employee = App\Models\Employee::where('user_id', $user->id)->first();
                 if ($employee && $employee->designation_id) {
                     $designation = App\Models\Designation::find($employee->designation_id);
                     $userDesignation = $designation ? $designation->name : null;
                 }
-                
+
                 if ($user->type == 'company') {
                     $userDesignation = 'Company';
                 }
             @endphp
             @if (\Auth::user()->type == 'company' || in_array($userDesignation, App\Models\MinutesSheet::APPROVAL_CHAIN))
-            <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'minutes-sheet' ? 'active' : '' }}">
-                <a href="{{ route('minutes-sheet.index') }}" class="dash-link">
-                    <span class="dash-micon"><i class="ti ti-file"></i></span><span
-                        class="dash-mtext">{{ __('Minute Sheet') }}</span>
-                </a>
-            </li>
-            <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'cheque-list' ? 'active' : '' }}">
-                <a href="{{ route('report.cheque.list') }}" class="dash-link">
-                    <span class="dash-micon"><i class="ti ti-list"></i></span><span
-                        class="dash-mtext">{{ __('Check List') }}</span>
-                </a>
-            </li>
+                <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'minutes-sheet' ? 'active' : '' }}">
+                    <a href="{{ route('minutes-sheet.index') }}" class="dash-link">
+                        <span class="dash-micon"><i class="ti ti-file"></i></span><span
+                            class="dash-mtext">{{ __('Minute Sheet') }}</span>
+                    </a>
+                </li>
+                <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'cheque-list' ? 'active' : '' }}">
+                    <a href="{{ route('report.cheque.list') }}" class="dash-link">
+                        <span class="dash-micon"><i class="ti ti-list"></i></span><span
+                            class="dash-mtext">{{ __('Check List') }}</span>
+                    </a>
+                </li>
             @endif
             <!--------------------- Start CRM ----------------------------------->
 
@@ -1904,10 +1928,7 @@
         @endif
         <!--------------------- End POs System ----------------------------------->
         <!--------------------- Start Workflow ----------------------------------->
-            {{-- @if (Gate::check('manage warehouse') ||
-                    Gate::check('manage purchase') ||
-                    Gate::check('manage pos') ||
-                    Gate::check('manage print settings'))
+        {{-- @if (Gate::check('manage warehouse') || Gate::check('manage purchase') || Gate::check('manage pos') || Gate::check('manage print settings'))
                 <li class="dash-item dash-hasmenu {{ Request::route()->getName() == 'pos.print' }}">
                     <a href="#!" class="dash-link"><span class="dash-micon"><i
                                 class="ti ti-layout"></i></span><span
@@ -1957,13 +1978,13 @@
                 </a>
             </li>
             @if (\Auth::user()->type == 'company' || \Auth::user()->type == 'branch')
-            <li
-                class="dash-item dash-hasmenu {{ Request::segment(1) == 'zoom-meeting' || Request::segment(1) == 'zoom-meeting-calender' ? 'active' : '' }}">
-                <a href="{{ route('zoom-meeting.index') }}" class="dash-link">
-                    <span class="dash-micon"><i class="ti ti-user-check"></i></span><span
-                        class="dash-mtext">{{ __('Zoom Meeting') }}</span>
-                </a>
-            </li>
+                <li
+                    class="dash-item dash-hasmenu {{ Request::segment(1) == 'zoom-meeting' || Request::segment(1) == 'zoom-meeting-calender' ? 'active' : '' }}">
+                    <a href="{{ route('zoom-meeting.index') }}" class="dash-link">
+                        <span class="dash-micon"><i class="ti ti-user-check"></i></span><span
+                            class="dash-mtext">{{ __('Zoom Meeting') }}</span>
+                    </a>
+                </li>
             @endif
             <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'chats' ? 'active' : '' }}">
                 <a href="{{ url('chats') }}" class="dash-link">

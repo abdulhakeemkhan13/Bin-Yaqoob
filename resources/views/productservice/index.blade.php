@@ -117,6 +117,7 @@
                                     <td>{{ucwords($productService->type)}}</td>
 
                                     @if(Gate::check('edit product & service') || Gate::check('delete product & service'))
+                                    @if($productService->type != 'unit')
                                         <td class="Action">
                                             <div class="action-btn bg-warning ms-2">
                                                 <a href="#" class="mx-3 btn btn-sm align-items-center" data-url="{{ route('productservice.detail',$productService->id) }}"
@@ -140,6 +141,9 @@
                                                 </div>
                                             @endcan
                                         </td>
+                                    @else
+                                        <td></td>
+                                    @endif
                                     @endif
                                 </tr>
                             @endforeach

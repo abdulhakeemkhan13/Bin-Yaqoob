@@ -8,6 +8,8 @@ class Deal extends Model
 {
     protected $fillable = [
         'name',
+        'phone',
+        'email',
         'price',
         'pipeline_id',
         'stage_id',
@@ -20,6 +22,14 @@ class Deal extends Model
         'permissions',
         'status',
         'is_active',
+        // Unit selection fields
+        're_project_id',
+        're_floor_id',
+        're_unit_id',
+        'offered_price',
+        'discount',
+        'expected_closing_date',
+        'contract_id',
     ];
 
     // Add this property with default empty values
@@ -165,5 +175,37 @@ class Deal extends Model
         }
 
         return \Auth::user()->priceFormat($total);
+    }
+
+    /**
+     * Get the project for the deal.
+     */
+    public function project()
+    {
+        return $this->belongsTo(ReProject::class, 're_project_id');
+    }
+
+    /**
+     * Get the floor for the deal.
+     */
+    public function floor()
+    {
+        return $this->belongsTo(ReFloor::class, 're_floor_id');
+    }
+
+    /**
+     * Get the unit for the deal.
+     */
+    public function unit()
+    {
+        return $this->belongsTo(ReUnit::class, 're_unit_id');
+    }
+
+    /**
+     * Get the contract for the deal.
+     */
+    public function contract()
+    {
+        return $this->belongsTo(Contract::class, 'contract_id');
     }
 }

@@ -261,6 +261,7 @@ class DealController extends Controller
                 $deal = new Deal();
                 $deal->name = $request->name;
                 $deal->phone = $request->phone;
+                $deal->email = $request->email;
                 if (empty($request->price)) {
                     $deal->price = 0;
                 } else {
@@ -284,8 +285,11 @@ class DealController extends Controller
 
 
 
-                //send email
-                $clients = User::whereIN('id', array_filter($request->clients))->get()->pluck('email', 'id')->toArray();
+                //send email - using deal email instead of client dropdown
+                $clients = [];
+                if ($deal->email) {
+                    $clients = [$deal->email];
+                }
                 $dealArr = [
                     'deal_id' => $deal->id,
                     'name' => $deal->name,
@@ -308,14 +312,7 @@ class DealController extends Controller
                     'deal_price' => $usr->priceFormat($deal->price),
                 ];
 
-                foreach (array_keys($clients) as $client) {
-                    ClientDeal::create(
-                        [
-                            'deal_id' => $deal->id,
-                            'client_id' => $client,
-                        ]
-                    );
-                }
+                // Client deals removed - now using email field directly
 
                 if ($usr->type == 'company') {
                     $usrDeals = [
@@ -335,105 +332,105 @@ class DealController extends Controller
                 $us_mail= 'false';
                 $us_notify= 'false';
                 $workflow = WorkFlow::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=','crm')->where('status',1)->first();
-                if($workflow){
-                    $workflowaction = WorkFlowAction::where('workflow_id',$workflow->id)->where('status',1)->where('level_id',2)->get();
-                    foreach(@$workflowaction as $action){
-                        $useraction = json_decode($action->assigned_users);
-                        if(strtolower('create-deal') == $action->node_id){
-                            // Pick that stage user assign or change on Deal
-                            if(@$useraction != ''){
-                                $useraction = json_decode($useraction);
-                                foreach($useraction as $anyaction){
-                                    // make new user array
-                                    if($anyaction->type == 'user'){
-                                        $usr_Deals[] = $anyaction->id;
-                                    }
-                                }
-                            }
-                            //  if user assign on this stage then check for mail and notification conditions
+                // if($workflow){
+                //     $workflowaction = WorkFlowAction::where('workflow_id',$workflow->id)->where('status',1)->where('level_id',2)->get();
+                //     foreach(@$workflowaction as $action){
+                //         $useraction = json_decode($action->assigned_users);
+                //         if(strtolower('create-deal') == $action->node_id){
+                //             // Pick that stage user assign or change on Deal
+                //             if(@$useraction != ''){
+                //                 $useraction = json_decode($useraction);
+                //                 foreach($useraction as $anyaction){
+                //                     // make new user array
+                //                     if($anyaction->type == 'user'){
+                //                         $usr_Deals[] = $anyaction->id;
+                //                     }
+                //                 }
+                //             }
+                //             //  if user assign on this stage then check for mail and notification conditions
 
-                            $raw_json = trim($action->applied_conditions, '"');
-                            $cleaned_json = stripslashes($raw_json);
-                            $applied_conditions = json_decode($cleaned_json, true);
+                //             $raw_json = trim($action->applied_conditions, '"');
+                //             $cleaned_json = stripslashes($raw_json);
+                //             $applied_conditions = json_decode($cleaned_json, true);
 
-                            if (isset($applied_conditions['conditions']) && is_array($applied_conditions['conditions'])) {
-                                $arr = [
-                                    'products' => 'App\Models\ProductService',
-                                    'sources' => 'App\Models\Source',
-                                    'label' => 'App\Models\Label',
-                                ];
-                                foreach ($applied_conditions['conditions'] as $conditionGroup) {
-                                    if (in_array($conditionGroup['action'], ['send_email', 'send_notification','send_approval'])) {
-                                        $query = Deal::where('id',$deal->id);
-                                        foreach ($conditionGroup['conditions'] as $condition) {
-                                            $field = $condition['field'];
-                                            $operator = $condition['operator'];
-                                            $value = $condition['value'];
-                                            if (Schema::hasColumn('deals', $field)) {
-                                                if (array_key_exists($field, $arr)) {
-                                                    $a =$arr[$field]::where('name',$value)->pluck('id')->toArray();
-                                                    if(isset($a) && count($a) > 0){
-                                                        $query->where($field,$operator,$a);
-                                                    }
-                                                }else{
-                                                    $query->where($field, $operator, $value);
-                                                }
-                                            }
-                                        }
-                                        $result = $query->first();
-                                        if (!empty($result)) {
-                                            if ($conditionGroup['action'] === 'send_email') {
-                                                $us_mail = 'true';
-                                            } elseif ($conditionGroup['action'] === 'send_notification') {
-                                                $us_notify = 'true';
-                                            }
-                                            elseif ($conditionGroup['action'] === 'send_approval') {
-                                                $us_approve = 'true';
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                //             if (isset($applied_conditions['conditions']) && is_array($applied_conditions['conditions'])) {
+                //                 $arr = [
+                //                     'products' => 'App\Models\ProductService',
+                //                     'sources' => 'App\Models\Source',
+                //                     'label' => 'App\Models\Label',
+                //                 ];
+                //                 foreach ($applied_conditions['conditions'] as $conditionGroup) {
+                //                     if (in_array($conditionGroup['action'], ['send_email', 'send_notification','send_approval'])) {
+                //                         $query = Deal::where('id',$deal->id);
+                //                         foreach ($conditionGroup['conditions'] as $condition) {
+                //                             $field = $condition['field'];
+                //                             $operator = $condition['operator'];
+                //                             $value = $condition['value'];
+                //                             if (Schema::hasColumn('deals', $field)) {
+                //                                 if (array_key_exists($field, $arr)) {
+                //                                     $a =$arr[$field]::where('name',$value)->pluck('id')->toArray();
+                //                                     if(isset($a) && count($a) > 0){
+                //                                         $query->where($field,$operator,$a);
+                //                                     }
+                //                                 }else{
+                //                                     $query->where($field, $operator, $value);
+                //                                 }
+                //                             }
+                //                         }
+                //                         $result = $query->first();
+                //                         if (!empty($result)) {
+                //                             if ($conditionGroup['action'] === 'send_email') {
+                //                                 $us_mail = 'true';
+                //                             } elseif ($conditionGroup['action'] === 'send_notification') {
+                //                                 $us_notify = 'true';
+                //                             }
+                //                             elseif ($conditionGroup['action'] === 'send_approval') {
+                //                                 $us_approve = 'true';
+                //                             }
+                //                         }
+                //                     }
+                //                 }
+                //             }
 
-                            if($us_mail == 'true'){
-                                // email send
-                            }
-                            if($us_notify == 'true' || $us_approve == 'true'){
-                                // notification generate
-                                if(count($usr_Deals) > 0){
-                                    $usr_Deals[] =  Auth::user()->creatorId();
-                                    foreach($usr_Deals as $usrDeal1)
-                                    {
-                                        $data = [
-                                            "updated_by" => Auth::user()->id,
-                                            "data_id" => $deal->id,
-                                            "name" => $deal->name,
-                                        ];
+                //             if($us_mail == 'true'){
+                //                 // email send
+                //             }
+                //             if($us_notify == 'true' || $us_approve == 'true'){
+                //                 // notification generate
+                //                 if(count($usr_Deals) > 0){
+                //                     $usr_Deals[] =  Auth::user()->creatorId();
+                //                     foreach($usr_Deals as $usrDeal1)
+                //                     {
+                //                         $data = [
+                //                             "updated_by" => Auth::user()->id,
+                //                             "data_id" => $deal->id,
+                //                             "name" => $deal->name,
+                //                         ];
 
-                                        if($us_notify == 'true'){
-                                            Utility::makeNotification($usrDeal1,'create_deal',$data,$deal->id,'create Deal');
-                                        }elseif($us_approve == 'true'){
-                                            Utility::makeNotification($usrDeal1,'approve_deal',$data,$deal->id,'For Approval Deal');
-                                        }
-                                    }
-                                }else{
-                                    foreach($usrDeals as $usr)
-                                    {
-                                        $data = [
-                                            "updated_by" => Auth::user()->id,
-                                            "data_id" => $deal->id,
-                                            "name" => $deal->name,
-                                        ];
-                                        if($us_notify == 'true'){
-                                            Utility::makeNotification($usr,'assign_deal',$data,$deal->id,'Assign Deal');
-                                        }
-                                    }
-                                }
+                //                         if($us_notify == 'true'){
+                //                             Utility::makeNotification($usrDeal1,'create_deal',$data,$deal->id,'create Deal');
+                //                         }elseif($us_approve == 'true'){
+                //                             Utility::makeNotification($usrDeal1,'approve_deal',$data,$deal->id,'For Approval Deal');
+                //                         }
+                //                     }
+                //                 }else{
+                //                     foreach($usrDeals as $usr)
+                //                     {
+                //                         $data = [
+                //                             "updated_by" => Auth::user()->id,
+                //                             "data_id" => $deal->id,
+                //                             "name" => $deal->name,
+                //                         ];
+                //                         if($us_notify == 'true'){
+                //                             Utility::makeNotification($usr,'assign_deal',$data,$deal->id,'Assign Deal');
+                //                         }
+                //                     }
+                //                 }
 
-                            }
-                        }
-                    }
-                }
+                //             }
+                //         }
+                //     }
+                // }
                 if(count($usr_Deals) > 0){
                     foreach($usr_Deals as $usr_Deal)
                     {
@@ -462,19 +459,19 @@ class DealController extends Controller
                 // Send Email
                 $setings = Utility::settings();
 
-                if ($setings['deal_assigned'] == 1) {
-                    $clients = User::whereIN('id', array_filter($request->clients))->get()->pluck('email', 'id')->toArray();
-                    $dealAssignArr = [
-                        'deal_name' => $deal->name,
-                        'deal_pipeline' => $pipeline->name,
-                        'deal_stage' => $stage->name,
-                        'deal_status' => $deal->status,
-                        'deal_price' => $usr->priceFormat($deal->price),
-                    ];
-                    $resp = Utility::sendEmailTemplate('deal_assigned', $clients, $dealAssignArr);
-                    //                    return redirect()->back()->with('success', __('Deal successfully created!')  .(($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
+                // if ($setings['deal_assigned'] == 1) {
+                //     $clients = User::whereIN('id', array_filter($request->clients))->get()->pluck('email', 'id')->toArray();
+                //     $dealAssignArr = [
+                //         'deal_name' => $deal->name,
+                //         'deal_pipeline' => $pipeline->name,
+                //         'deal_stage' => $stage->name,
+                //         'deal_status' => $deal->status,
+                //         'deal_price' => $usr->priceFormat($deal->price),
+                //     ];
+                //     $resp = Utility::sendEmailTemplate('deal_assigned', $clients, $dealAssignArr);
+                //     //                    return redirect()->back()->with('success', __('Deal successfully created!')  .(($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
 
-                }
+                // }
 
                 //For Notification
                 $setting = Utility::settings(\Auth::user()->creatorId());
@@ -587,8 +584,13 @@ class DealController extends Controller
 
                 $deal->sources = explode(',', $deal->sources);
                 $deal->products = explode(',', $deal->products);
+                
+                // Get projects for unit selection
+                $projects = \App\Models\ReProject::where('created_by', \Auth::user()->creatorId())
+                    ->pluck('name', 'id')
+                    ->toArray();
 
-                return view('deals.edit', compact('deal', 'pipelines', 'sources', 'products', 'customFields'));
+                return view('deals.edit', compact('deal', 'pipelines', 'sources', 'products', 'customFields', 'projects'));
             } else {
                 return response()->json(['error' => __('Permission Denied.')], 401);
             }
@@ -632,10 +634,44 @@ class DealController extends Controller
                 } else {
                     $deal->price = $request->price;
                 }
+                
+                // Unit reservation logic - handle status changes
+                $oldUnitId = $deal->re_unit_id;
+                $newUnitId = $request->re_unit_id;
+                
+                // If unit changed, update statuses
+                if ($oldUnitId != $newUnitId) {
+                    // Revert old unit to Available (if it was reserved by this deal)
+                    if ($oldUnitId) {
+                        $oldUnit = \App\Models\ReUnit::find($oldUnitId);
+                        if ($oldUnit && $oldUnit->status == 'Reserved') {
+                            $oldUnit->status = 'Available';
+                            $oldUnit->save();
+                        }
+                    }
+                    // Mark new unit as Reserved
+                    if ($newUnitId) {
+                        $newUnit = \App\Models\ReUnit::find($newUnitId);
+                        if ($newUnit && $newUnit->status == 'Available') {
+                            $newUnit->status = 'Reserved';
+                            $newUnit->save();
+                        }
+                    }
+                }
+                
+                // Unit details
+                $deal->re_project_id = $request->re_project_id;
+                $deal->re_floor_id = $request->re_floor_id;
+                $deal->re_unit_id = $request->re_unit_id;
+                $deal->offered_price = $request->offered_price;
+                $deal->discount = $request->discount;
+                $deal->expected_closing_date = $request->expected_closing_date;
+                $deal->status = $request->status;
+                
                 $deal->pipeline_id = $request->pipeline_id;
                 $deal->stage_id = $request->stage_id;
-                $deal->sources = implode(",", array_filter($request->sources));
-                $deal->products = implode(",", array_filter($request->products));
+                $deal->sources = implode(",", array_filter($request->sources ?? []));
+                $deal->products = implode(",", array_filter($request->products ?? []));
                 $deal->notes = $request->notes;
                 $deal->save();
 
@@ -2348,5 +2384,230 @@ class DealController extends Controller
         }
 
         return redirect()->back()->with($data['status'], $data['msg']);
+    }
+
+    /**
+     * Get floors by project (AJAX)
+     */
+    public function getFloorsByProject(Request $request)
+    {
+        $floors = \App\Models\ReFloor::where('re_project_id', $request->project_id)
+            ->pluck('floor_name', 'id')
+            ->toArray();
+        return response()->json($floors);
+    }
+
+    /**
+     * Get units by floor (AJAX)
+     */
+    public function getUnitsByFloor(Request $request)
+    {
+        $units = \App\Models\ReUnit::where('re_floor_id', $request->floor_id)
+            ->where('status', '!=', 'Sold')
+            ->get()
+            ->mapWithKeys(function($u) {
+                return [$u->id => $u->unit_number . ' (' . $u->status . ') - ' . number_format($u->price, 0)];
+            });
+        return response()->json($units);
+    }
+
+    /**
+     * Show convert to contract form
+     */
+    public function showConvertToContract($id)
+    {
+        if (\Auth::user()->can('create contract')) {
+            $deal = Deal::findOrFail($id);
+            
+            if (\Auth::user()->type == 'company') {
+                $contractTypes = \App\Models\ContractType::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+                $clients = User::where('type', 'client')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            } else {
+                $contractTypes = \App\Models\ContractType::where('owned_by', '=', \Auth::user()->ownedId())->get()->pluck('name', 'id');
+                $clients = User::where('type', 'client')->where('owned_by', \Auth::user()->ownedId())->get()->pluck('name', 'id');
+            }
+            $clients->prepend(__('Select Client'), 0);
+            
+            $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'contract')->get();
+            
+            // Find or create client from deal email/name
+            $selectedClient = 0;
+            if (!empty($deal->email)) {
+                $existingClient = User::where('email', $deal->email)->where('type', 'client')->first();
+                if ($existingClient) {
+                    $selectedClient = $existingClient->id;
+                }
+            }
+            
+            // Pass deal data to prefill the form
+            $prefill = [
+                'subject' => $deal->name,
+                'value' => $deal->offered_price ?? $deal->price ?? 0,
+                'start_date' => $deal->created_at->format('Y-m-d'),
+                'end_date' => $deal->expected_closing_date ?? now()->addMonths(1)->format('Y-m-d'),
+                'description' => $deal->notes,
+                'client_id' => $selectedClient,
+                'deal_id' => $deal->id,
+            ];
+            
+            return view('deals.convert_to_contract_form', compact('deal', 'contractTypes', 'clients', 'customFields', 'prefill'));
+        } else {
+            return response()->json(['error' => __('Permission Denied.')], 401);
+        }
+    }
+
+    /**
+     * Convert deal to contract
+     */
+    public function convertToContract(Request $request, $id)
+    {
+        if (\Auth::user()->can('create contract')) {
+            $validator = \Validator::make(
+                $request->all(),
+                [
+                    'type' => 'required',
+                    'subject' => 'required',
+                    'start_date' => 'required|date',
+                    'end_date' => 'required|date|after_or_equal:start_date',
+                ]
+            );
+
+            if ($validator->fails()) {
+                $messages = $validator->getMessageBag();
+                return response()->json(['error' => $messages->first()], 422);
+            }
+
+            $deal = Deal::findOrFail($id);
+            
+            // Find or create client from deal email/name
+            $clientId = $request->client_name;
+            if (empty($clientId) || $clientId == 0) {
+                if (!empty($deal->email)) {
+                    // Check if client exists by email
+                    $existingClient = User::where('email', $deal->email)->where('type', 'client')->first();
+                    
+                    if ($existingClient) {
+                        $clientId = $existingClient->id;
+                    } else {
+                        // Create new client
+                        $newClient = new User();
+                        $newClient->name = $deal->name;
+                        $newClient->email = $deal->email;
+                        $newClient->password = \Hash::make('password123'); // Default password
+                        $newClient->type = 'client';
+                        $newClient->lang = 'en';
+                        $newClient->created_by = \Auth::user()->creatorId();
+                        $newClient->owned_by = \Auth::user()->ownedId();
+                        $newClient->save();
+                        
+                        // Assign client role
+                        $role = \Spatie\Permission\Models\Role::where('name', 'client')->first();
+                        if ($role) {
+                            $newClient->assignRole($role);
+                        }
+                        
+                        $clientId = $newClient->id;
+                    }
+                }
+            }
+            
+            // Create contract from deal
+            $contract = new \App\Models\Contract();
+            $contract->subject = $request->subject;
+            $contract->client_name = $clientId;
+            
+            // Find or create customer and link to client
+            $customer = \App\Models\Customer::where('email', $deal->email)->first();
+            if (!$customer) {
+                $customer = new \App\Models\Customer();
+                $customer->name = $deal->name;
+                $customer->email = $deal->email;
+                $customer->contact = $deal->phone;
+                
+                // Set customer number
+                $user = \Auth::user();
+                $ownerId = $user->type === 'company' ? $user->creatorId() : $user->ownedId();
+                $column = ($user->type == 'company') ? 'created_by' : 'owned_by';
+                $latest = \App\Models\Customer::where($column, '=', $ownerId)->latest()->first();
+                $customer->customer_id = $latest ? $latest->customer_id + 1 : 1;
+                
+                $customer->created_by = \Auth::user()->creatorId();
+                $customer->owned_by = \Auth::user()->ownedId();
+                $customer->is_active = 1;
+            }
+            $customer->client_id = $clientId;
+            $customer->save();
+            
+            $contract->customer_id = $customer->id;
+            $contract->type = $request->type;
+            $contract->value = $request->value ?? 0;
+            $contract->start_date = $request->start_date;
+            $contract->end_date = $request->end_date;
+            $contract->description = $request->description;
+            $contract->project_id = $request->project_id;
+            
+            // Installment plan data
+            $contract->payment_plan_id = $request->payment_plan_id;
+            $contract->num_installments = $request->installments;
+            $contract->down_payment_percent = $request->down_payment_percent;
+            $contract->down_payment_amount = $request->down_payment;
+            $contract->deal_id = $id;
+            
+            $contract->created_by = \Auth::user()->creatorId();
+            $contract->owned_by = \Auth::user()->ownedId();
+            $contract->save();
+            
+            // Save custom fields
+            CustomField::saveData($contract, $request->customField);
+
+            // Update deal status to Won and link contract
+            $deal->status = 'Won';
+            $deal->contract_id = $contract->id;
+            $deal->save();
+
+            Utility::makeActivityLog(\Auth::user()->id, 'Deal', $deal->id, 'Converted to Contract', $deal->name);
+
+            return response()->json([
+                'success' => true, 
+                'message' => __('Deal successfully converted to contract.'),
+                'redirect' => route('contract.show', $contract->id)
+            ]);
+        } else {
+            return response()->json(['error' => __('Permission Denied.')], 401);
+        }
+    }
+
+    /**
+     * Get payment plans by project (AJAX)
+     */
+    public function getPaymentPlansByProject(Request $request)
+    {
+        $projectId = $request->project_id;
+        
+        if (!$projectId) {
+            return response()->json([]);
+        }
+        
+        $project = \App\Models\ReProject::find($projectId);
+        
+        if (!$project) {
+            return response()->json([]);
+        }
+        
+        $plans = $project->paymentPlans()->where('is_active', true)->get()->map(function($plan) {
+            return [
+                'id' => $plan->id,
+                'name' => $plan->plan_name,
+                'down_payment_percentage' => $plan->down_payment_percentage,
+                'down_payment_amount' => $plan->down_payment_amount,
+                'num_installments' => $plan->num_installments,
+                'frequency' => $plan->frequency,
+                'possession_charges' => $plan->possession_charges,
+                'discount' => $plan->discount,
+                'extra_charges' => $plan->extra_charges,
+            ];
+        });
+        
+        return response()->json($plans);
     }
 }
