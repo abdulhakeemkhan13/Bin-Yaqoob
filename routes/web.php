@@ -1938,6 +1938,7 @@ Route::group(['middleware' => ['verified']], function () {
         Route::get('/', [\App\Http\Controllers\REProjectController::class, 'index'])->name('re-projects.index');
         Route::get('/create', [\App\Http\Controllers\REProjectController::class, 'create'])->name('re-projects.create');
         Route::post('/basic-info', [\App\Http\Controllers\REProjectController::class, 'storeBasicInfo'])->name('re-projects.basic-info');
+        Route::post('/{id}/towers', [\App\Http\Controllers\REProjectController::class, 'storeTowers'])->name('re-projects.towers');
         Route::post('/{id}/floors', [\App\Http\Controllers\REProjectController::class, 'storeFloors'])->name('re-projects.floors');
         Route::get('/{id}/floors', [\App\Http\Controllers\REProjectController::class, 'getFloors'])->name('re-projects.get-floors');
         Route::post('/{id}/units', [\App\Http\Controllers\REProjectController::class, 'storeUnits'])->name('re-projects.units');

@@ -18,7 +18,7 @@
 
 <div class="row mt-4">
     <div class="col-6">
-        <button type="button" class="btn btn-secondary" onclick="goToTab(4)">
+        <button type="button" class="btn btn-secondary" onclick="goToTab(5)">
             <i class="ti ti-arrow-left"></i> {{ __('Previous') }}
         </button>
     </div>

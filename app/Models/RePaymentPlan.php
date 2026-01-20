@@ -21,6 +21,7 @@ class RePaymentPlan extends Model
         'possession_charges',
         'discount',
         'extra_charges',
+        'booking_charges',
         'is_active',
         'created_by',
     ];
@@ -31,6 +32,7 @@ class RePaymentPlan extends Model
         'possession_charges' => 'decimal:2',
         'discount' => 'decimal:2',
         'extra_charges' => 'decimal:2',
+        'booking_charges' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 

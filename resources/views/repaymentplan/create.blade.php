@@ -112,6 +112,18 @@
                                     @enderror
                                 </div>
                             </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="form-label">{{ __('Booking Charges') }}</label>
+                                    <input type="number"
+                                        class="form-control @error('booking_charges') is-invalid @enderror"
+                                        name="booking_charges" value="{{ old('booking_charges') }}" step="0.01"
+                                        min="0">
+                                    @error('booking_charges')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
                         </div>
                         <div class="row mt-3">
                             <div class="col-12">

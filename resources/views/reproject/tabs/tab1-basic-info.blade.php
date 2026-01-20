@@ -35,10 +35,10 @@
         </div>
         <div class="col-md-3">
             <div class="form-group">
-                <label class="form-label">{{ __('Total Floors') }} <span class="text-danger">*</span></label>
-                <input type="number" class="form-control" id="total_floors" name="total_floors" min="1"
+                <label class="form-label">{{ __('Total Towers / Blocks') }} <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="total_towers" name="total_towers" min="1"
                     value="1" required>
-                <small class="text-muted">{{ __('Enter number of floors to generate floor list in next step') }}</small>
+                <small class="text-muted">{{ __('Enter number of towers/blocks to generate in next step') }}</small>
             </div>
         </div>
         <div class="col-md-3">
@@ -67,6 +67,56 @@
             <div class="form-group">
                 <label class="form-label">{{ __('Description') }}</label>
                 <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="form-label">{{ __('Approval Authority') }}</label>
+                <select class="form-control" id="approval_authority" name="approval_authority">
+                    <option value="">{{ __('Select Authority') }}</option>
+                    <option value="LDA">{{ __('LDA') }}</option>
+                    <option value="CDA">{{ __('CDA') }}</option>
+                    <option value="SBCA">{{ __('SBCA') }}</option>
+                    <option value="RDA">{{ __('RDA') }}</option>
+                    <option value="KDA">{{ __('KDA') }}</option>
+                    <option value="TMA">{{ __('TMA') }}</option>
+                    <option value="Other">{{ __('Other') }}</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="form-label">{{ __('NOC Number') }}</label>
+                <input type="text" class="form-control" id="noc_number" name="noc_number"
+                    placeholder="e.g. NOC-2026-001">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="form-label">{{ __('Approval Date') }}</label>
+                <input type="date" class="form-control" id="approval_date" name="approval_date">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="form-label">{{ __('Income Account (COA)') }}</label>
+                <select class="form-control" id="income_account_id" name="income_account_id">
+                    @foreach ($incomeAccounts as $id => $name)
+                        <option value="{{ $id }}">{{ $name }}</option>
+                    @endforeach
+                </select>
+                <small class="text-muted">{{ __('Sales/Revenue account for bookings') }}</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="form-label">{{ __('Receivable Account (COA)') }}</label>
+                <select class="form-control" id="receivable_account_id" name="receivable_account_id">
+                    @foreach ($receivableAccounts as $id => $name)
+                        <option value="{{ $id }}">{{ $name }}</option>
+                    @endforeach
+                </select>
+                <small class="text-muted">{{ __('Accounts receivable for payments') }}</small>
             </div>
         </div>
     </div>

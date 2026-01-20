@@ -121,6 +121,18 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
+                                    <label class="form-label">{{ __('Booking Charges') }}</label>
+                                    <input type="number"
+                                        class="form-control @error('booking_charges') is-invalid @enderror"
+                                        name="booking_charges" value="{{ old('booking_charges', $plan->booking_charges) }}"
+                                        step="0.01" min="0">
+                                    @error('booking_charges')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
                                     <label class="form-label">{{ __('Status') }}</label>
                                     <div class="form-check form-switch mt-2">
                                         <input class="form-check-input" type="checkbox" name="is_active" value="1"

@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\ReProject;
 use App\Models\ReFloor;
 use App\Models\ReUnit;
+use App\Models\ReTower;
 use App\Models\RePaymentPlan;
 use App\Models\ReInstallment;
 use App\Models\ProductService;
 use App\Models\ProductServiceCategory;
 use App\Models\ProductServiceUnit;
+use App\Models\ChartOfAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -34,8 +36,25 @@ class REProjectController extends Controller
      */
     public function create()
     {
-     
-        return view('reproject.create');
+        // Get income accounts (type 4 = Income)
+        $incomeAccounts = ChartOfAccount::select(DB::raw('CONCAT(code, " - ", name) AS code_name, id'))
+            ->where('created_by', Auth::user()->creatorId())
+            ->where('type', 4) // Income type
+            ->where('is_enabled', 1)
+            ->orderBy('code')
+            ->pluck('code_name', 'id');
+        $incomeAccounts->prepend('Select Income Account', '');
+
+        // Get receivable accounts (Assets - Current Assets)
+        $receivableAccounts = ChartOfAccount::select(DB::raw('CONCAT(code, " - ", name) AS code_name, id'))
+            ->where('created_by', Auth::user()->creatorId())
+            ->where('type', 1) // Assets type
+            ->where('is_enabled', 1)
+            ->orderBy('code')
+            ->pluck('code_name', 'id');
+        $receivableAccounts->prepend('Select Receivable Account', '');
+
+        return view('reproject.create', compact('incomeAccounts', 'receivableAccounts'));
     }
 
     /**
@@ -51,7 +70,7 @@ class REProjectController extends Controller
             'city' => 'required|string|max:255',
             'area' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'total_floors' => 'required|integer|min:1',
+            'total_towers' => 'required|integer|min:1',
             'type' => 'required|in:Residential,Commercial,Mixed',
             'start_date' => 'nullable|date',
             'expected_completion' => 'nullable|date|after_or_equal:start_date',
@@ -76,13 +95,19 @@ class REProjectController extends Controller
                     'city' => $request->city,
                     'area' => $request->area,
                     'address' => $request->address,
-                    'total_floors' => $request->total_floors,
-                    'total_units' => 0, // Will be calculated when floors are saved
+                    'total_floors' => 0, // Will be calculated when floors are saved
+                    'total_towers' => $request->total_towers,
+                    'total_units' => 0, // Will be calculated when units are saved
                     'type' => $request->type,
                     'status' => 'Planning',
                     'start_date' => $request->start_date,
                     'expected_completion' => $request->expected_completion,
                     'description' => $request->description,
+                    'approval_authority' => $request->approval_authority,
+                    'noc_number' => $request->noc_number,
+                    'approval_date' => $request->approval_date,
+                    'income_account_id' => $request->income_account_id ?: null,
+                    'receivable_account_id' => $request->receivable_account_id ?: null,
                     'created_by' => Auth::user()->creatorId(),
                 ]
             );
@@ -106,7 +131,69 @@ class REProjectController extends Controller
     }
 
     /**
-     * Tab 2: Store floors for a project.
+     * Tab 2: Store towers/blocks for a project.
+     */
+    public function storeTowers(Request $request, $id)
+    {
+        $project = ReProject::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'towers' => 'required|array|min:1',
+            'towers.*.tower_code' => 'required|string|max:50',
+            'towers.*.tower_name' => 'nullable|string|max:100',
+            'towers.*.floors_count' => 'required|integer|min:1',
+            'towers.*.construction_type' => 'required|in:RCC,Steel,Composite,Other',
+            'towers.*.parking_type' => 'required|in:Basement,Podium,Mechanical,Open,None',
+            'towers.*.elevator_count' => 'nullable|integer|min:0',
+            'towers.*.status' => 'required|in:Planning,Construction,Completed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Delete existing towers
+            $project->towers()->delete();
+
+            // Create new towers
+            foreach ($request->towers as $towerData) {
+                ReTower::create([
+                    're_project_id' => $project->id,
+                    'tower_code' => $towerData['tower_code'],
+                    'tower_name' => $towerData['tower_name'] ?? null,
+                    'floors_count' => $towerData['floors_count'],
+                    'construction_type' => $towerData['construction_type'],
+                    'parking_type' => $towerData['parking_type'],
+                    'elevator_count' => $towerData['elevator_count'] ?? 0,
+                    'status' => $towerData['status'],
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => __('Towers saved successfully.'),
+                'next_tab' => 3,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => __('Failed to save towers.'),
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Tab 3: Store floors for a project.
      */
     public function storeFloors(Request $request, $id)
     {
@@ -114,6 +201,7 @@ class REProjectController extends Controller
 
         $validator = Validator::make($request->all(), [
             'floors' => 'required|array|min:1',
+            'floors.*.tower_code' => 'nullable|string|max:50',
             'floors.*.floor_number' => 'required|string|max:50',
             'floors.*.floor_name' => 'nullable|string|max:100',
             'floors.*.total_units' => 'required|integer|min:0',
@@ -132,14 +220,28 @@ class REProjectController extends Controller
             // Delete existing floors
             $project->floors()->delete();
 
+            // Get all towers for this project for lookup
+            $towers = $project->towers()->pluck('id', 'tower_code');
+
             // Create new floors
             $totalUnits = 0;
             foreach ($request->floors as $floorData) {
-                // Generate floor code: PROJECT_CODE_FLOOR_NUMBER
-                $floorCode = $project->code . '_' . $floorData['floor_number'];
+                // Get tower ID if tower_code is provided
+                $towerId = null;
+                if (!empty($floorData['tower_code']) && isset($towers[$floorData['tower_code']])) {
+                    $towerId = $towers[$floorData['tower_code']];
+                }
+
+                // Generate floor code: PROJECT_CODE_TOWER_CODE_FLOOR_NUMBER or PROJECT_CODE_FLOOR_NUMBER
+                $floorCode = $project->code;
+                if (!empty($floorData['tower_code'])) {
+                    $floorCode .= '_' . $floorData['tower_code'];
+                }
+                $floorCode .= '_' . $floorData['floor_number'];
                 
                 ReFloor::create([
                     're_project_id' => $project->id,
+                    're_tower_id' => $towerId,
                     'code' => $floorCode,
                     'floor_number' => $floorData['floor_number'],
                     'floor_name' => $floorData['floor_name'] ?? null,
@@ -159,7 +261,7 @@ class REProjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => __('Floors saved successfully.'),
-                'next_tab' => 3,
+                'next_tab' => 4,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -172,7 +274,7 @@ class REProjectController extends Controller
     }
 
     /**
-     * Tab 3: Store units for floors.
+     * Tab 4: Store units for floors.
      */
     public function storeUnits(Request $request, $id)
     {
@@ -268,7 +370,7 @@ class REProjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => __('Units saved successfully.'),
-                'next_tab' => 4,
+                'next_tab' => 5,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -281,7 +383,7 @@ class REProjectController extends Controller
     }
 
     /**
-     * Tab 4: Assign existing payment plans to project.
+     * Tab 5: Assign existing payment plans to project.
      */
     public function assignPaymentPlans(Request $request, $id)
     {
@@ -310,7 +412,7 @@ class REProjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => __('Payment plans assigned successfully.'),
-                'next_tab' => 5,
+                'next_tab' => 6,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -323,7 +425,7 @@ class REProjectController extends Controller
     }
 
     /**
-     * Tab 5: Final submit - activate the project.
+     * Tab 6: Final submit - activate the project.
      */
     public function finalSubmit(Request $request, $id)
     {
@@ -366,7 +468,7 @@ class REProjectController extends Controller
      */
     public function getProjectData($id)
     {
-        $project = ReProject::with(['floors.units', 'paymentPlans'])->findOrFail($id);
+        $project = ReProject::with(['towers', 'floors.tower', 'floors.units', 'paymentPlans'])->findOrFail($id);
 
         return response()->json([
             'success' => true,

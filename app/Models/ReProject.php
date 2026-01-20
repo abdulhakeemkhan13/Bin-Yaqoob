@@ -18,22 +18,47 @@ class ReProject extends Model
         'area',
         'address',
         'total_floors',
+        'total_towers',
         'total_units',
         'type',
         'status',
         'start_date',
         'expected_completion',
         'description',
+        'approval_authority',
+        'noc_number',
+        'approval_date',
+        'income_account_id',
+        'receivable_account_id',
         'created_by',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'expected_completion' => 'date',
+        'approval_date' => 'date',
     ];
+
+    public static $approvalAuthorities = ['LDA', 'CDA', 'SBCA', 'RDA', 'KDA', 'TMA', 'Other'];
 
     public static $types = ['Residential', 'Commercial', 'Mixed'];
     public static $statuses = ['Planning', 'Active', 'Completed'];
+
+    /**
+     * Get the income chart of account.
+     */
+    public function incomeAccount()
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'income_account_id');
+    }
+
+    /**
+     * Get the receivable chart of account.
+     */
+    public function receivableAccount()
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'receivable_account_id');
+    }
 
     /**
      * Get the floors for the project.
@@ -41,6 +66,14 @@ class ReProject extends Model
     public function floors()
     {
         return $this->hasMany(ReFloor::class, 're_project_id');
+    }
+
+    /**
+     * Get the towers for the project.
+     */
+    public function towers()
+    {
+        return $this->hasMany(ReTower::class, 're_project_id');
     }
 
     /**

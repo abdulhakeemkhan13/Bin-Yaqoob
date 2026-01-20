@@ -10,6 +10,7 @@ class ReFloor extends Model
 
     protected $fillable = [
         're_project_id',
+        're_tower_id',
         'code',
         'floor_number',
         'floor_name',
@@ -22,6 +23,14 @@ class ReFloor extends Model
     public function project()
     {
         return $this->belongsTo(ReProject::class, 're_project_id');
+    }
+
+    /**
+     * Get the tower that owns the floor.
+     */
+    public function tower()
+    {
+        return $this->belongsTo(ReTower::class, 're_tower_id');
     }
 
     /**

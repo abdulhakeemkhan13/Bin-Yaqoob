@@ -107,18 +107,22 @@
                         </div>
                         <div class="wizard-step" data-step="2">
                             <div class="step-number">2</div>
-                            <div class="step-title">{{ __('Floors') }}</div>
+                            <div class="step-title">{{ __('Towers/Blocks') }}</div>
                         </div>
                         <div class="wizard-step" data-step="3">
                             <div class="step-number">3</div>
-                            <div class="step-title">{{ __('Units') }}</div>
+                            <div class="step-title">{{ __('Floors') }}</div>
                         </div>
                         <div class="wizard-step" data-step="4">
                             <div class="step-number">4</div>
-                            <div class="step-title">{{ __('Payment Plans') }}</div>
+                            <div class="step-title">{{ __('Units') }}</div>
                         </div>
                         <div class="wizard-step" data-step="5">
                             <div class="step-number">5</div>
+                            <div class="step-title">{{ __('Payment Plans') }}</div>
+                        </div>
+                        <div class="wizard-step" data-step="6">
+                            <div class="step-number">6</div>
                             <div class="step-title">{{ __('Review') }}</div>
                         </div>
                     </div>
@@ -130,24 +134,29 @@
                             @include('reproject.tabs.tab1-basic-info')
                         </div>
 
-                        <!-- Tab 2: Floors -->
+                        <!-- Tab 2: Towers/Blocks -->
                         <div class="wizard-tab d-none" id="tab-2">
-                            @include('reproject.tabs.tab2-floors')
+                            @include('reproject.tabs.tab2-towers')
                         </div>
 
-                        <!-- Tab 3: Units -->
+                        <!-- Tab 3: Floors -->
                         <div class="wizard-tab d-none" id="tab-3">
-                            @include('reproject.tabs.tab3-units')
+                            @include('reproject.tabs.tab3-floors')
                         </div>
 
-                        <!-- Tab 4: Payment Plans -->
+                        <!-- Tab 4: Units -->
                         <div class="wizard-tab d-none" id="tab-4">
-                            @include('reproject.tabs.tab4-payment-plans')
+                            @include('reproject.tabs.tab4-units')
                         </div>
 
-                        <!-- Tab 5: Review -->
+                        <!-- Tab 5: Payment Plans -->
                         <div class="wizard-tab d-none" id="tab-5">
-                            @include('reproject.tabs.tab5-review')
+                            @include('reproject.tabs.tab5-payment-plans')
+                        </div>
+
+                        <!-- Tab 6: Review -->
+                        <div class="wizard-tab d-none" id="tab-6">
+                            @include('reproject.tabs.tab6-review')
                         </div>
                     </div>
                 </div>
@@ -234,39 +243,121 @@
 
             // Load data for specific tabs
             if (tabNumber == 2) {
-                // Auto-generate floor rows based on total_floors
+                // Auto-generate tower rows based on total_towers
+                generateTowerRows();
+            } else if (tabNumber == 3) {
+                // Auto-generate floor rows based on tower data
                 generateFloorRows();
-            } else if (tabNumber == 3 && projectId > 0) {
+            } else if (tabNumber == 4 && projectId > 0) {
                 loadFloorsForUnits();
-            } else if (tabNumber == 4) {
+            } else if (tabNumber == 5) {
                 loadAvailablePlans();
-            } else if (tabNumber == 5 && projectId > 0) {
+            } else if (tabNumber == 6 && projectId > 0) {
                 loadReviewData();
             }
         }
 
-        function generateFloorRows() {
-            var totalFloors = parseInt($('#total_floors').val()) || 1;
-            var container = $('#floors-container');
-            container.empty();
+        function generateTowerRows() {
+            var totalTowers = parseInt($('#total_towers').val()) || 1;
+            var container = $('#towers-container');
 
-            for (var i = 1; i <= totalFloors; i++) {
-                var floorName = getOrdinalFloorName(i);
-                var html = `
-                    <tr class="floor-row">
-                        <td>
-                            <input type="text" class="form-control form-control-sm floor-number" value="${i}" readonly style="background-color: #f8f9fa;">
-                        </td>
-                        <td>
-                            <input type="text" class="form-control form-control-sm floor-name" value="${floorName}" required>
-                        </td>
-                        <td>
-                            <input type="number" class="form-control form-control-sm floor-units" value="1" min="1" required>
-                        </td>
-                    </tr>
-                `;
-                container.append(html);
+            // Only generate if empty
+            if (container.find('.tower-row').length > 0) {
+                return;
             }
+
+            container.empty();
+            towerIndex = 0;
+
+            for (var i = 1; i <= totalTowers; i++) {
+                addTowerRow();
+            }
+        }
+
+        // Store tower data from tab 2 submission
+        var savedTowers = [];
+
+        function generateFloorRows() {
+            // Get tower data from the submitted towers or from saved towers
+            if (savedTowers.length === 0) {
+                // Collect from form if not saved yet
+                $('.tower-row').each(function() {
+                    savedTowers.push({
+                        tower_code: $(this).find('.tower-code').val(),
+                        tower_name: $(this).find('.tower-name').val(),
+                        floors_count: parseInt($(this).find('.tower-floors').val()) || 1
+                    });
+                });
+            }
+
+            if (savedTowers.length === 0) {
+                // No towers, show simple floor list
+                $('#tower-tabs').html(
+                    '<li class="nav-item"><a class="nav-link active" href="#">{{ __('No Towers Defined') }}</a></li>');
+                return;
+            }
+
+            // Generate tower tabs
+            var tabsHtml = '';
+            var contentHtml = '';
+
+            savedTowers.forEach(function(tower, index) {
+                var isActive = index === 0 ? 'active' : '';
+                var towerLabel = tower.tower_name || ('{{ __('Tower') }} ' + tower.tower_code);
+
+                // Tab header
+                tabsHtml += `
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link ${isActive}" id="tower-tab-${index}" data-bs-toggle="tab" 
+                            data-bs-target="#tower-content-${index}" type="button" role="tab">
+                            <strong>${tower.tower_code}</strong> - ${towerLabel}
+                            <span class="badge bg-primary ms-1">${tower.floors_count} {{ __('floors') }}</span>
+                        </button>
+                    </li>
+                `;
+
+                // Tab content with floor table
+                var floorsHtml = '';
+                for (var f = 1; f <= tower.floors_count; f++) {
+                    var floorName = getOrdinalFloorName(f);
+                    floorsHtml += `
+                        <tr class="floor-row" data-tower-code="${tower.tower_code}">
+                            <td>
+                                <input type="hidden" class="tower-code-input" value="${tower.tower_code}">
+                                <input type="text" class="form-control form-control-sm floor-number" value="${f}" readonly style="background-color: #f8f9fa;">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm floor-name" value="${floorName}" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm floor-units" value="1" min="1" required>
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                contentHtml += `
+                    <div class="tab-pane fade ${index === 0 ? 'show active' : ''}" id="tower-content-${index}" role="tabpanel">
+                        <div class="table-responsive mt-3">
+                            <table class="table table-bordered table-hover">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="width: 80px;">{{ __('Floor #') }}</th>
+                                        <th>{{ __('Floor Name') }}</th>
+                                        <th style="width: 150px;">{{ __('No. of Units') }} <span class="text-danger">*</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="floors-container-tower" data-tower="${tower.tower_code}">
+                                    ${floorsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+
+            $('#tower-tabs').html(tabsHtml);
+            $('#tower-tabs-content').html(contentHtml);
         }
 
         function getOrdinalFloorName(num) {
@@ -452,13 +543,13 @@
                             </select>
                         </td>
                         <td>
-                            <input type="number" class="form-control form-control-sm unit-area" step="0.01" min="0" onchange="calculateFromArea(this)">
+                            <input type="number" class="form-control form-control-sm unit-area" value="1" step="0.01" min="0" onchange="calculateFromArea(this)">
                         </td>
                         <td>
-                            <input type="number" class="form-control form-control-sm unit-price-sqft" step="0.01" min="0" onchange="calculateTotalPrice(this)">
+                            <input type="number" class="form-control form-control-sm unit-price-sqft" value="1" step="0.01" min="0" onchange="calculateTotalPrice(this)">
                         </td>
                         <td>
-                            <input type="number" class="form-control form-control-sm unit-price" step="0.01" min="0" required onchange="calculatePricePerSqft(this)">
+                            <input type="number" class="form-control form-control-sm unit-price" value="1" step="0.01" min="0" readonly style="background-color: #f8f9fa;">
                         </td>
                         <td>
                             <input type="text" class="form-control form-control-sm unit-facing" placeholder="N/S/E/W">
@@ -559,12 +650,13 @@
             });
         });
 
-        // Tab 2: Save Floors
+        // Tab 3: Save Floors
         $('#form-floors').on('submit', function(e) {
             e.preventDefault();
             var floors = [];
             $('.floor-row').each(function() {
                 floors.push({
+                    tower_code: $(this).find('.tower-code-input').val() || '',
                     floor_number: $(this).find('.floor-number').val(),
                     floor_name: $(this).find('.floor-name').val(),
                     total_units: $(this).find('.floor-units').val()
@@ -985,19 +1077,70 @@
             html += '<tr><td><strong>{{ __('Code') }}:</strong></td><td>' + project.code + '</td></tr>';
             html += '<tr><td><strong>{{ __('City') }}:</strong></td><td>' + project.city + '</td></tr>';
             html += '<tr><td><strong>{{ __('Type') }}:</strong></td><td>' + project.type + '</td></tr>';
+            html += '<tr><td><strong>{{ __('Total Towers') }}:</strong></td><td>' + (project.total_towers || project
+                .towers?.length || 0) + '</td></tr>';
             html += '<tr><td><strong>{{ __('Total Floors') }}:</strong></td><td>' + project.total_floors + '</td></tr>';
             html += '<tr><td><strong>{{ __('Total Units') }}:</strong></td><td>' + project.total_units + '</td></tr>';
             html += '</table></div>';
 
-            // Floors
-            html += '<div class="col-md-6"><h6>{{ __('Floors') }}</h6>';
-            html +=
-                '<table class="table table-sm"><thead><tr><th>{{ __('Floor') }}</th><th>{{ __('Units') }}</th></tr></thead><tbody>';
+            // Approval Info (if available)
+            html += '<div class="col-md-6"><h6>{{ __('Approval Info') }}</h6>';
+            html += '<table class="table table-sm">';
+            html += '<tr><td><strong>{{ __('Authority') }}:</strong></td><td>' + (project.approval_authority || '-') +
+                '</td></tr>';
+            html += '<tr><td><strong>{{ __('NOC Number') }}:</strong></td><td>' + (project.noc_number || '-') +
+                '</td></tr>';
+            html += '<tr><td><strong>{{ __('Approval Date') }}:</strong></td><td>' + (project.approval_date || '-') +
+                '</td></tr>';
+            html += '</table></div>';
+
+            // Towers/Blocks with Floors
+            if (project.towers && project.towers.length > 0) {
+                html += '<div class="col-12 mt-3"><h6>{{ __('Towers / Blocks') }}</h6>';
+                html += '<div class="table-responsive">';
+                html += '<table class="table table-bordered table-sm">';
+                html += '<thead class="bg-light"><tr>';
+                html += '<th>{{ __('Tower Code') }}</th>';
+                html += '<th>{{ __('Tower Name') }}</th>';
+                html += '<th>{{ __('Floors') }}</th>';
+                html += '<th>{{ __('Construction') }}</th>';
+                html += '<th>{{ __('Status') }}</th>';
+                html += '</tr></thead><tbody>';
+
+                project.towers.forEach(function(tower) {
+                    html += '<tr>';
+                    html += '<td><strong>' + tower.tower_code + '</strong></td>';
+                    html += '<td>' + (tower.tower_name || '-') + '</td>';
+                    html += '<td>' + tower.floors_count + '</td>';
+                    html += '<td>' + (tower.construction_type || '-') + '</td>';
+                    html += '<td>' + (tower.status || '-') + '</td>';
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table></div></div>';
+            }
+
+            // Floors with Units (grouped by tower if available)
+            html += '<div class="col-12 mt-3"><h6>{{ __('Floors & Units') }}</h6>';
+            html += '<div class="table-responsive">';
+            html += '<table class="table table-bordered table-sm">';
+            html += '<thead class="bg-light"><tr>';
+            html += '<th>{{ __('Tower') }}</th>';
+            html += '<th>{{ __('Floor #') }}</th>';
+            html += '<th>{{ __('Floor Name') }}</th>';
+            html += '<th>{{ __('Units') }}</th>';
+            html += '</tr></thead><tbody>';
+
             project.floors.forEach(function(floor) {
-                html += '<tr><td>' + floor.floor_number + (floor.floor_name ? ' - ' + floor.floor_name : '') +
-                    '</td><td>' + floor.total_units + '</td></tr>';
+                html += '<tr>';
+                html += '<td>' + (floor.tower ? floor.tower.tower_code : '-') + '</td>';
+                html += '<td>' + floor.floor_number + '</td>';
+                html += '<td>' + (floor.floor_name || '-') + '</td>';
+                html += '<td>' + floor.total_units + '</td>';
+                html += '</tr>';
             });
-            html += '</tbody></table></div>';
+
+            html += '</tbody></table></div></div>';
 
             // Payment Plans
             html += '<div class="col-12 mt-3"><h6>{{ __('Payment Plans') }}</h6>';
@@ -1012,5 +1155,125 @@
             html += '</div>';
             $('#review-content').html(html);
         }
+
+        // Tower Management Functions
+        var towerIndex = 0;
+
+        function addTowerRow(data = null) {
+            towerIndex++;
+            var defaultCode = String.fromCharCode(64 + towerIndex); // A, B, C...
+            if (towerIndex > 26) {
+                defaultCode = 'Block-' + towerIndex;
+            }
+
+            var html = `
+                <tr class="tower-row" data-index="${towerIndex}">
+                    <td>
+                        <input type="text" class="form-control form-control-sm tower-code" value="${data ? data.tower_code : defaultCode}" required>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm tower-name" value="${data ? (data.tower_name || '') : ''}" placeholder="{{ __('Tower/Block Name') }}">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm tower-floors" value="${data ? data.floors_count : 1}" min="1" required>
+                    </td>
+                    <td>
+                        <select class="form-control form-control-sm tower-construction">
+                            <option value="RCC" ${data && data.construction_type === 'RCC' ? 'selected' : ''}>{{ __('RCC') }}</option>
+                            <option value="Steel" ${data && data.construction_type === 'Steel' ? 'selected' : ''}>{{ __('Steel') }}</option>
+                            <option value="Composite" ${data && data.construction_type === 'Composite' ? 'selected' : ''}>{{ __('Composite') }}</option>
+                            <option value="Other" ${data && data.construction_type === 'Other' ? 'selected' : ''}>{{ __('Other') }}</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-control form-control-sm tower-parking">
+                            <option value="None" ${data && data.parking_type === 'None' ? 'selected' : ''}>{{ __('None') }}</option>
+                            <option value="Basement" ${data && data.parking_type === 'Basement' ? 'selected' : ''}>{{ __('Basement') }}</option>
+                            <option value="Podium" ${data && data.parking_type === 'Podium' ? 'selected' : ''}>{{ __('Podium') }}</option>
+                            <option value="Mechanical" ${data && data.parking_type === 'Mechanical' ? 'selected' : ''}>{{ __('Mechanical') }}</option>
+                            <option value="Open" ${data && data.parking_type === 'Open' ? 'selected' : ''}>{{ __('Open') }}</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm tower-elevators" value="${data ? data.elevator_count : 0}" min="0">
+                    </td>
+                    <td>
+                        <select class="form-control form-control-sm tower-status">
+                            <option value="Planning" ${data && data.status === 'Planning' ? 'selected' : ''}>{{ __('Planning') }}</option>
+                            <option value="Construction" ${data && data.status === 'Construction' ? 'selected' : ''}>{{ __('Construction') }}</option>
+                            <option value="Completed" ${data && data.status === 'Completed' ? 'selected' : ''}>{{ __('Completed') }}</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeTowerRow(this)">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            $('#towers-container').append(html);
+        }
+
+        function removeTowerRow(btn) {
+            $(btn).closest('.tower-row').remove();
+        }
+
+        function skipTowersTab() {
+            // Skip tower creation and go directly to floors
+            maxTab = 3;
+            goToTab(3);
+        }
+
+        // Tab 2: Save Towers
+        $('#form-towers').on('submit', function(e) {
+            e.preventDefault();
+
+            var towers = [];
+            $('.tower-row').each(function() {
+                towers.push({
+                    tower_code: $(this).find('.tower-code').val(),
+                    tower_name: $(this).find('.tower-name').val(),
+                    floors_count: $(this).find('.tower-floors').val(),
+                    construction_type: $(this).find('.tower-construction').val(),
+                    parking_type: $(this).find('.tower-parking').val(),
+                    elevator_count: $(this).find('.tower-elevators').val(),
+                    status: $(this).find('.tower-status').val()
+                });
+            });
+
+            if (towers.length === 0) {
+                // No towers, skip to floors
+                skipTowersTab();
+                return;
+            }
+
+            $.ajax({
+                url: '{{ url('re-projects') }}/' + projectId + '/towers',
+                type: 'POST',
+                data: {
+                    towers: towers
+                },
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        maxTab = response.next_tab;
+                        toastr.success(response.message);
+                        goToTab(response.next_tab);
+                    }
+                },
+                error: function(xhr) {
+                    if (xhr.status === 422) {
+                        var errors = xhr.responseJSON.errors;
+                        $.each(errors, function(key, value) {
+                            toastr.error(value[0]);
+                        });
+                    } else {
+                        toastr.error(xhr.responseJSON?.message || '{{ __('Something went wrong') }}');
+                    }
+                }
+            });
+        });
     </script>
 @endpush
