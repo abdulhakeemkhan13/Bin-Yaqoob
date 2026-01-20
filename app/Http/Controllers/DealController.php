@@ -207,8 +207,12 @@ class DealController extends Controller
     $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())
         ->where('module', '=', 'deal')
         ->get();
+    
+    // Get projects for unit selection
+    $projects = \App\Models\ReProject::where('created_by', \Auth::user()->creatorId())
+        ->pluck('name', 'id');
         
-    return view('deals.create', compact('clients', 'customFields'));
+    return view('deals.create', compact('clients', 'customFields', 'projects'));
 } else {
     return response()->json(['error' => __('Permission Denied.')], 401);
 }
@@ -272,8 +276,27 @@ class DealController extends Controller
                 $deal->status = 'Active';
                 $deal->created_by = $usr->ownerId();
                 $deal->owned_by = $usr->ownedId();
+
+                // Unit details
+                $deal->re_project_id = $request->re_project_id;
+                $deal->re_tower_id = $request->re_tower_id;
+                $deal->re_floor_id = $request->re_floor_id;
+                $deal->re_unit_id = $request->re_unit_id;
+                $deal->offered_price = $request->offered_price;
+                $deal->discount = $request->discount;
+                $deal->expected_closing_date = $request->expected_closing_date;
+
                 // $deal->date = date('Y-m-d');
                 $deal->save();
+
+                // Reserve the unit if selected
+                if ($deal->re_unit_id) {
+                    $unit = \App\Models\ReUnit::find($deal->re_unit_id);
+                    if ($unit && $unit->status == 'Available') {
+                        $unit->status = 'Reserved';
+                        $unit->save();
+                    }
+                }
 
                 if($deal){
                     $emp = Employee::find($deal->user_id);
@@ -661,11 +684,30 @@ class DealController extends Controller
                 
                 // Unit details
                 $deal->re_project_id = $request->re_project_id;
+                $deal->re_tower_id = $request->re_tower_id;
                 $deal->re_floor_id = $request->re_floor_id;
                 $deal->re_unit_id = $request->re_unit_id;
                 $deal->offered_price = $request->offered_price;
                 $deal->discount = $request->discount;
                 $deal->expected_closing_date = $request->expected_closing_date;
+
+                // Client details
+                $deal->customer_type = $request->customer_type;
+                $deal->full_name = $request->full_name;
+                $deal->father_or_company_name = $request->father_or_company_name;
+                $deal->cnic_or_ntn = $request->cnic_or_ntn;
+                $deal->mobile_primary = $request->mobile_primary;
+                $deal->mobile_secondary = $request->mobile_secondary;
+                $deal->current_address = $request->current_address;
+                $deal->permanent_address = $request->permanent_address;
+                $deal->nationality = $request->nationality;
+
+                // Nominee details
+                $deal->nominee_name = $request->nominee_name;
+                $deal->nominee_relation = $request->nominee_relation;
+                $deal->nominee_cnic = $request->nominee_cnic;
+                $deal->nominee_contact = $request->nominee_contact;
+
                 $deal->status = $request->status;
                 
                 $deal->pipeline_id = $request->pipeline_id;
@@ -2387,13 +2429,28 @@ class DealController extends Controller
     }
 
     /**
-     * Get floors by project (AJAX)
+     * Get towers by project (AJAX)
+     */
+    public function getTowersByProject(Request $request)
+    {
+        $towers = \App\Models\ReTower::where('re_project_id', $request->project_id)
+            ->pluck('tower_name', 'id')
+            ->toArray();
+        return response()->json($towers);
+    }
+
+    /**
+     * Get floors by tower (AJAX)
      */
     public function getFloorsByProject(Request $request)
     {
-        $floors = \App\Models\ReFloor::where('re_project_id', $request->project_id)
-            ->pluck('floor_name', 'id')
-            ->toArray();
+        $query = \App\Models\ReFloor::where('re_project_id', $request->project_id);
+        
+        if ($request->has('tower_id') && !empty($request->tower_id)) {
+            $query->where('re_tower_id', $request->tower_id);
+        }
+        
+        $floors = $query->pluck('floor_name', 'id')->toArray();
         return response()->json($floors);
     }
 
@@ -2406,9 +2463,26 @@ class DealController extends Controller
             ->where('status', '!=', 'Sold')
             ->get()
             ->mapWithKeys(function($u) {
-                return [$u->id => $u->unit_number . ' (' . $u->status . ') - ' . number_format($u->price, 0)];
+                return [$u->id => $u->unit_number . ' (' . $u->status . ')'];
             });
         return response()->json($units);
+    }
+
+    /**
+     * Get unit detail (AJAX)
+     */
+    public function getUnitDetail(Request $request)
+    {
+        $unit = \App\Models\ReUnit::find($request->unit_id);
+        if ($unit) {
+            return response()->json([
+                'success' => true,
+                'price' => $unit->price,
+                'area' => $unit->area,
+                'status' => $unit->status
+            ]);
+        }
+        return response()->json(['success' => false]);
     }
 
     /**

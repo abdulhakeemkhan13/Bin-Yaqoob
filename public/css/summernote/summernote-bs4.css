@@ -293,9 +293,9 @@
 .note-editor.note-frame .note-editing-area .note-editable {
     padding: 10px;
     overflow: auto;
-    color: #808191;
+    color: #000;
     word-wrap: break-word;
-    background-color: #22242c;
+    background-color: #fff;
 }
 .note-editor.note-frame
     .note-editing-area

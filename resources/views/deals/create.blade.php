@@ -31,12 +31,46 @@
             {{ Form::label('email', __('Email'), ['class' => 'form-label']) }}
             {{ Form::email('email', null, ['class' => 'form-control', 'placeholder' => 'client@example.com']) }}
         </div>
+
+        {{-- Unit Selection Section --}}
+        <div class="col-12">
+            <hr>
+            <h6>{{ __('Unit Details') }}</h6>
+        </div>
+
+        <div class="col-6 form-group">
+            {{ Form::label('re_project_id', __('Select Project'), ['class' => 'form-label']) }}
+            {{ Form::select('re_project_id', ['' => __('Select Project')] + $projects->toArray(), null, ['class' => 'form-control', 'id' => 're_project_id']) }}
+        </div>
+        <div class="col-6 form-group">
+            {{ Form::label('re_tower_id', __('Select Tower / Block'), ['class' => 'form-label']) }}
+            {{ Form::select('re_tower_id', ['' => __('Select Tower')], null, ['class' => 'form-control', 'id' => 're_tower_id']) }}
+        </div>
+        <div class="col-6 form-group">
+            {{ Form::label('re_floor_id', __('Select Floor'), ['class' => 'form-label']) }}
+            {{ Form::select('re_floor_id', ['' => __('Select Floor')], null, ['class' => 'form-control', 'id' => 're_floor_id']) }}
+        </div>
+        <div class="col-6 form-group">
+            {{ Form::label('re_unit_id', __('Select Unit'), ['class' => 'form-label']) }}
+            {{ Form::select('re_unit_id', ['' => __('Select Unit')], null, ['class' => 'form-control', 'id' => 're_unit_id']) }}
+        </div>
+
+        <div class="col-6 form-group">
+            {{ Form::label('offered_price', __('Offered Price'), ['class' => 'form-label']) }}
+            {{ Form::number('offered_price', null, ['class' => 'form-control', 'step' => '0.01', 'id' => 'offered_price']) }}
+        </div>
+        <div class="col-6 form-group">
+            {{ Form::label('discount', __('Discount'), ['class' => 'form-label']) }}
+            {{ Form::number('discount', null, ['class' => 'form-control', 'step' => '0.01', 'id' => 'discount']) }}
+        </div>
+        <div class="col-6 form-group">
+            {{ Form::label('expected_closing_date', __('Expected Closing Date'), ['class' => 'form-label']) }}
+            {{ Form::date('expected_closing_date', null, ['class' => 'form-control']) }}
+        </div>
+        {{-- End Unit Selection Section --}}
+
         @if (!$customFields->isEmpty())
-            {{-- <div class="col-6 form-group">
-                <div class="tab-pane fade show" id="tab-2" role="tabpanel"> --}}
             @include('customFields.formBuilder')
-            {{-- </div>
-            </div> --}}
         @endif
     </div>
 </div>
@@ -45,3 +79,99 @@
     <input type="submit" value="{{ __('Create') }}" class="btn  btn-primary">
 </div>
 {{ Form::close() }}
+
+<script>
+    $(document).on("change", "#re_project_id", function() {
+        var projectId = $(this).val();
+        if (projectId) {
+            $.ajax({
+                url: '{{ route('deals.towers.json') }}',
+                data: {
+                    project_id: projectId,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'POST',
+                success: function(data) {
+                    $('#re_tower_id').empty().append(
+                        '<option value="">{{ __('Select Tower') }}</option>');
+                    $('#re_floor_id').empty().append(
+                        '<option value="">{{ __('Select Floor') }}</option>');
+                    $('#re_unit_id').empty().append(
+                        '<option value="">{{ __('Select Unit') }}</option>');
+                    $.each(data, function(key, value) {
+                        $('#re_tower_id').append('<option value="' + key + '">' + value +
+                            '</option>');
+                    });
+                }
+            });
+        }
+    });
+
+    $(document).on("change", "#re_tower_id", function() {
+        var towerId = $(this).val();
+        var projectId = $('#re_project_id').val();
+        if (towerId) {
+            $.ajax({
+                url: '{{ route('deals.floors.json') }}',
+                data: {
+                    tower_id: towerId,
+                    project_id: projectId,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'POST',
+                success: function(data) {
+                    $('#re_floor_id').empty().append(
+                        '<option value="">{{ __('Select Floor') }}</option>');
+                    $('#re_unit_id').empty().append(
+                        '<option value="">{{ __('Select Unit') }}</option>');
+                    $.each(data, function(key, value) {
+                        $('#re_floor_id').append('<option value="' + key + '">' + value +
+                            '</option>');
+                    });
+                }
+            });
+        }
+    });
+
+    $(document).on("change", "#re_floor_id", function() {
+        var floorId = $(this).val();
+        if (floorId) {
+            $.ajax({
+                url: '{{ route('deals.units.json') }}',
+                data: {
+                    floor_id: floorId,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'POST',
+                success: function(data) {
+                    $('#re_unit_id').empty().append(
+                        '<option value="">{{ __('Select Unit') }}</option>');
+                    $.each(data, function(key, value) {
+                        $('#re_unit_id').append('<option value="' + key + '">' + value +
+                            '</option>');
+                    });
+                }
+            });
+        }
+    });
+
+    $(document).on("change", "#re_unit_id", function() {
+        var unitId = $(this).val();
+        if (unitId) {
+            $.ajax({
+                url: '{{ route('deals.unit.detail.json') }}',
+                data: {
+                    unit_id: unitId,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'POST',
+                success: function(data) {
+                    if (data.success) {
+                        $('#offered_price').val(data.price);
+                        $('#price').val(data.price);
+                    }
+                }
+            });
+        }
+    });
+</script>

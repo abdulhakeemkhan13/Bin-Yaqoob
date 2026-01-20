@@ -24,12 +24,27 @@ class Deal extends Model
         'is_active',
         // Unit selection fields
         're_project_id',
+        're_tower_id',
         're_floor_id',
         're_unit_id',
         'offered_price',
         'discount',
         'expected_closing_date',
         'contract_id',
+        // Client details
+        'customer_type',
+        'full_name',
+        'father_or_company_name',
+        'cnic_or_ntn',
+        'mobile_primary',
+        'mobile_secondary',
+        'current_address',
+        'permanent_address',
+        'nationality',
+        'nominee_name',
+        'nominee_relation',
+        'nominee_cnic',
+        'nominee_contact',
     ];
 
     // Add this property with default empty values
@@ -183,6 +198,14 @@ class Deal extends Model
     public function project()
     {
         return $this->belongsTo(ReProject::class, 're_project_id');
+    }
+
+    /**
+     * Get the tower for the deal.
+     */
+    public function tower()
+    {
+        return $this->belongsTo(ReTower::class, 're_tower_id');
     }
 
     /**

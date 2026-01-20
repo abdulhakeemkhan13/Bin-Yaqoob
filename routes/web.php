@@ -914,8 +914,10 @@ Route::group(['middleware' => ['verified']], function () {
     Route::get('import/deals/file', [DealController::class, 'importFile'])->name('deals.file.import');
 
     // Unit Selection AJAX routes
+    Route::post('/deals/towers-by-project', [DealController::class, 'getTowersByProject'])->name('deals.towers.json')->middleware(['auth', 'XSS']);
     Route::post('/deals/floors-by-project', [DealController::class, 'getFloorsByProject'])->name('deals.floors.json')->middleware(['auth', 'XSS']);
     Route::post('/deals/units-by-floor', [DealController::class, 'getUnitsByFloor'])->name('deals.units.json')->middleware(['auth', 'XSS']);
+    Route::post('/deals/unit-detail', [DealController::class, 'getUnitDetail'])->name('deals.unit.detail.json')->middleware(['auth', 'XSS']);
 
     // Deal to Contract Conversion
     Route::get('/deals/{id}/convert-to-contract', [DealController::class, 'showConvertToContract'])->name('deals.convert.contract')->middleware(['auth', 'XSS']);

@@ -261,6 +261,20 @@
                             <a href="#general" class="list-group-item list-group-item-action border-0">{{ __('General') }}
                                 <div class="float-end"><i class="ti ti-chevron-right"></i></div>
                             </a>
+                            <a href="#unit_details"
+                                class="list-group-item list-group-item-action border-0">{{ __('Unit Details') }}
+                                <div class="float-end"><i class="ti ti-chevron-right"></i></div>
+                            </a>
+
+                            <a href="#client_details"
+                                class="list-group-item list-group-item-action border-0">{{ __('Client Details') }}
+                                <div class="float-end"><i class="ti ti-chevron-right"></i></div>
+                            </a>
+
+                            <a href="#nominee_details"
+                                class="list-group-item list-group-item-action border-0">{{ __('Nominee Details') }}
+                                <div class="float-end"><i class="ti ti-chevron-right"></i></div>
+                            </a>
 
                             @if (Auth::user()->type != 'client')
                                 <a href="#custom"
@@ -363,7 +377,126 @@
                             </div>
                         </div>
                     </div>
-                    <div id="custom" class="card">
+                    <div id="unit_details" class="card mt-3">
+                        <div class="card-body">
+                            <h5>{{ __('Unit Details') }}</h5>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Project') }}</p>
+                                    <h6 class="mb-0">{{ $deal->project->name ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Tower / Block') }}</p>
+                                    <h6 class="mb-0">{{ $deal->tower->tower_name ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Floor') }}</p>
+                                    <h6 class="mb-0">{{ $deal->floor->floor_name ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Unit') }}</p>
+                                    <h6 class="mb-0">{{ $deal->unit->unit_number ?? '-' }}</h6>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-4 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Offered Price') }}</p>
+                                    <h6 class="mb-0 text-primary">{{ \Auth::user()->priceFormat($deal->offered_price) }}
+                                    </h6>
+                                </div>
+                                <div class="col-md-4 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Discount') }}</p>
+                                    <h6 class="mb-0 text-danger">{{ \Auth::user()->priceFormat($deal->discount) }}</h6>
+                                </div>
+                                <div class="col-md-4 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Expected Closing Date') }}</p>
+                                    <h6 class="mb-0">
+                                        {{ !empty($deal->expected_closing_date) ? \Auth::user()->dateFormat($deal->expected_closing_date) : '-' }}
+                                    </h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="client_details" class="card mt-3">
+                        <div class="card-body">
+                            <h5>{{ __('Client Details') }}</h5>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Customer Type') }}</p>
+                                    <h6 class="mb-0">{{ $deal->customer_type ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Full Name') }}</p>
+                                    <h6 class="mb-0">{{ $deal->full_name ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Father / Co Name') }}</p>
+                                    <h6 class="mb-0">{{ $deal->father_or_company_name ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('CNIC / NTN') }}</p>
+                                    <h6 class="mb-0">{{ $deal->cnic_or_ntn ?? '-' }}</h6>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Mobile Primary') }}</p>
+                                    <h6 class="mb-0">{{ $deal->mobile_primary ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Mobile Secondary') }}</p>
+                                    <h6 class="mb-0">{{ $deal->mobile_secondary ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Email') }}</p>
+                                    <h6 class="mb-0">{{ $deal->email ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Nationality') }}</p>
+                                    <h6 class="mb-0">{{ $deal->nationality ?? '-' }}</h6>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6 col-sm-12">
+                                    <p class="text-muted text-sm mb-0">{{ __('Current Address') }}</p>
+                                    <h6 class="mb-0">{{ $deal->current_address ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <p class="text-muted text-sm mb-0">{{ __('Permanent Address') }}</p>
+                                    <h6 class="mb-0">{{ $deal->permanent_address ?? '-' }}</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="nominee_details" class="card mt-3">
+                        <div class="card-body">
+                            <h5>{{ __('Nominee Details') }}</h5>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Nominee Name') }}</p>
+                                    <h6 class="mb-0">{{ $deal->nominee_name ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Relation') }}</p>
+                                    <h6 class="mb-0">{{ $deal->nominee_relation ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Nominee CNIC') }}</p>
+                                    <h6 class="mb-0">{{ $deal->nominee_cnic ?? '-' }}</h6>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <p class="text-muted text-sm mb-0">{{ __('Contact') }}</p>
+                                    <h6 class="mb-0">{{ $deal->nominee_contact ?? '-' }}</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="custom" class="card mt-3">
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-12 col-sm-12 d-flex " style="align-items: center; gap:20px">
@@ -564,8 +697,8 @@
 
                                     <div class="float-end">
                                         <a data-size="md" data-url="{{ route('deals.users.edit', $deal->id) }}"
-                                            data-ajax-popup="true" data-bs-toggle="tooltip" title="{{ __('Add User') }}"
-                                            class="btn btn-sm btn-primary">
+                                            data-ajax-popup="true" data-bs-toggle="tooltip"
+                                            title="{{ __('Add User') }}" class="btn btn-sm btn-primary">
                                             <i class="ti ti-plus"></i>
                                         </a>
                                     </div>
