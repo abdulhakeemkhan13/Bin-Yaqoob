@@ -20,6 +20,10 @@ class JournalEntry extends Model
         'employee_id',
         'owned_by',
         'created_by',
+        're_project_id',
+        'tower_id',
+        'floor_id',
+        'unit_id',
     ];
 
 

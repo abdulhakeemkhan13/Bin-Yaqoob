@@ -12,6 +12,11 @@
 
 @section('action-btn')
     <div class="float-end">
+        @if ($project->status == 'Active')
+            <a href="{{ route('re-projects.edit-basic-info', $project->id) }}" class="btn btn-sm btn-primary me-2">
+                <i class="ti ti-pencil"></i> {{ __('Edit Basic Info') }}
+            </a>
+        @endif
         <a href="{{ route('re-projects.index') }}" class="btn btn-sm btn-secondary">
             <i class="ti ti-arrow-left"></i> {{ __('Back') }}
         </a>
@@ -180,13 +185,12 @@
                                                                         <i class="ti ti-pencil"></i>
                                                                     </button>
                                                                 @endif
-                                                                <button type="button"
-                                                                    class="btn btn-sm btn-info btn-view-unit"
-                                                                    data-unit-id="{{ $unit->id }}"
+                                                                <a href="{{ route('re-projects.units.show', [$project->id, $unit->id]) }}"
+                                                                    target="_blank" class="btn btn-sm btn-info"
                                                                     data-bs-toggle="tooltip"
                                                                     title="{{ __('View Details') }}">
                                                                     <i class="ti ti-eye"></i>
-                                                                </button>
+                                                                </a>
                                                             </td>
                                                         </tr>
                                                     @empty

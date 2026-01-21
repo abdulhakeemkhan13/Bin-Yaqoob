@@ -212,11 +212,11 @@ class InvoiceController extends Controller
                 return redirect()->back()->with('error', $messages->first());
             }
                         // DATE VALIDATION: Due Date cannot be earlier than Issue Date
-if ($request->issue_date > $request->due_date) {
-    return redirect()->back()
-        ->with('error', 'Due Date cannot be earlier than Issue Date.')
-        ->withInput();
-}
+            if ($request->issue_date > $request->due_date) {
+                return redirect()->back()
+                    ->with('error', 'Due Date cannot be earlier than Issue Date.')
+                    ->withInput();
+            }
             $status = Invoice::$statues;
             $invoice = new Invoice();
             $invoice->invoice_id = $this->invoiceNumber();
@@ -234,6 +234,7 @@ if ($request->issue_date > $request->due_date) {
             if ($request->has('installment_id') && $request->installment_id) {
                 $installment = \App\Models\ContractInstallment::with('contract')->find($request->installment_id);
                 if ($installment) {
+                    
                     $invoice->installment_id = $installment->id;
                     $invoice->contract_id = $installment->contract_id;
                     
@@ -248,7 +249,9 @@ if ($request->issue_date > $request->due_date) {
             } elseif ($request->has('contract_id') && $request->contract_id) {
                 $contract = \App\Models\Contract::find($request->contract_id);
                 if ($contract) {
+                
                     $invoice->contract_id = $contract->id;
+                    $invoice->customer_id = $contract->customer_id ?? $request->customer_id;
                     $invoice->re_project_id = $contract->re_project_id;
                     $invoice->tower_id = $contract->tower_id;
                     $invoice->floor_id = $contract->floor_id;
@@ -825,6 +828,24 @@ if ($request->issue_date > $request->due_date) {
 
         if (\Auth::user()->can('send invoice')) {
             // Send Email
+
+            $incomeAccountId = null;
+            $receivableAccountId = null;
+            
+            if ($invoice->re_project_id) {
+                $project = \App\Models\REProject::find($invoice->re_project_id);
+                if ($project) {
+                    if (!$project->income_account_id || !$project->receivable_account_id) {
+                        \Log::warning('Invoice journal voucher skipped - Project missing COA accounts', [
+                            'invoice_id' => $invoice->id,
+                            'project_id' => $project->id,
+                        ]);
+                        return null; // Skip journal entry if project doesn't have COA configured
+                    }
+                    $incomeAccountId = $project->income_account_id;
+                    $receivableAccountId = $project->receivable_account_id;
+                }
+            }
             $setings = Utility::settings();
 
             if ($setings['customer_invoice_sent'] == 1) {
@@ -1075,6 +1096,10 @@ public function createPayment(Request $request, $invoice_id)
             'created_at' => date('Y-m-d H:i:s', strtotime($payment->date.' '.date('H:i:s'))),
             'owned_by' => \Auth::user()->ownedId(),
             'created_by' => \Auth::user()->creatorId(),
+            're_project_id' => $invoice->re_project_id,
+            'tower_id' => $invoice->tower_id,
+            'floor_id' => $invoice->floor_id,
+            'unit_id' => $invoice->unit_id,
         ];
 
         // Use CRV for cash accounts, BRV for bank accounts
@@ -1599,6 +1624,25 @@ public function createPayment(Request $request, $invoice_id)
 
     private function createInvoiceJournalVoucher(Invoice $invoice)
     {
+        // Check if invoice is linked to a project and validate COA accounts
+        $incomeAccountId = null;
+        $receivableAccountId = null;
+        
+        if ($invoice->re_project_id) {
+            $project = \App\Models\REProject::find($invoice->re_project_id);
+            if ($project) {
+                if (!$project->income_account_id || !$project->receivable_account_id) {
+                    \Log::warning('Invoice journal voucher skipped - Project missing COA accounts', [
+                        'invoice_id' => $invoice->id,
+                        'project_id' => $project->id,
+                    ]);
+                    return null; // Skip journal entry if project doesn't have COA configured
+                }
+                $incomeAccountId = $project->income_account_id;
+                $receivableAccountId = $project->receivable_account_id;
+            }
+        }
+        
         $invoiceProducts = $invoice->items; // must have relation in Invoice model
         // dd($invoiceProducts,'invpro');
         $newitems = [];
@@ -1633,6 +1677,13 @@ public function createPayment(Request $request, $invoice_id)
             'items' => $newitems,
             'customer_id' => $invoice->customer_id,
             'total' => $invoice->getTotal(),
+            // Project-specific COA accounts
+            're_project_id' => $invoice->re_project_id,
+            'tower_id' => $invoice->tower_id,
+            'floor_id' => $invoice->floor_id,
+            'unit_id' => $invoice->unit_id,
+            'income_account_id' => $incomeAccountId,
+            'receivable_account_id' => $receivableAccountId,
         ];
 
         $voucherId = Utility::jrentry($data);

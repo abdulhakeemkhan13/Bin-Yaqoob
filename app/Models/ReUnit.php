@@ -67,4 +67,21 @@ class ReUnit extends Model
     {
         return $this->hasOneThrough(ReProject::class, ReFloor::class, 'id', 'id', 're_floor_id', 're_project_id');
     }
+
+    /**
+     * Get the booking for this unit.
+     */
+    public function booking()
+    {
+        return $this->hasOne(ReBooking::class, 're_unit_id');
+    }
+
+    /**
+     * Get the contract for this unit.
+     */
+    public function contract()
+    {
+        // return $this->hasOne(Contract::class, 'unit_id')->where('status', 'accept');
+        return $this->hasOne(Contract::class, 'unit_id');
+    }
 }

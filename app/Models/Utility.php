@@ -6035,6 +6035,10 @@ class Utility extends Model
             $journal->voucher_type = 'JV';
             $journal->owned_by = $data['owned_by'];
             $journal->created_by = $data['created_by'];
+            $journal->re_project_id = $data['re_project_id'] ?? null;
+            $journal->tower_id = $data['tower_id'] ?? null;
+            $journal->floor_id = $data['floor_id'] ?? null;
+            $journal->unit_id = $data['unit_id'] ?? null;
             $journal->save();
             $journal->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
             $journal->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
@@ -6042,6 +6046,10 @@ class Utility extends Model
 
             $reciveable = 0;
             $tax = 0;
+            
+            // Get project COA accounts if provided
+            $projectIncomeAccountId = $data['income_account_id'] ?? null;
+            $projectReceivableAccountId = $data['receivable_account_id'] ?? null;
 
             for ($i = 0; $i < count($data['items']); $i++) {
                 // dd($data['items']);
@@ -6052,13 +6060,20 @@ class Utility extends Model
                     continue;
                 }
 
+                // Use project income account if provided, otherwise use product's sale account
+                $incomeAccountId = $projectIncomeAccountId ?? $product->sale_chartaccount_id;
+
                 $journalItem = new JournalItem();
                 $journalItem->journal = $journal->id;
-                $journalItem->account = $product->sale_chartaccount_id;
+                $journalItem->account = $incomeAccountId;
                 $journalItem->product_ids = @$data['items'][$i]['prod_id'];
                 $journalItem->description = @$data['items'][$i]['description'];
                 $journalItem->credit = (($data['items'][$i]['quantity'] * $data['items'][$i]['price']) - $data['items'][$i]['discount']);
                 $journalItem->debit = 0;
+                $journalItem->re_project_id = $data['re_project_id'] ?? null;
+                $journalItem->tower_id = $data['tower_id'] ?? null;
+                $journalItem->floor_id = $data['floor_id'] ?? null;
+                $journalItem->unit_id = $data['unit_id'] ?? null;
                 $journalItem->save();
                 $journalItem->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
                 $journalItem->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
@@ -6068,7 +6083,7 @@ class Utility extends Model
                 // dd($journalItem,$reciveable);
 
                 $dataline = [
-                    'account_id' => $product->sale_chartaccount_id,
+                    'account_id' => $incomeAccountId,
                     'transaction_type' => 'Credit',
                     'transaction_amount' => $journalItem->credit,
                     'reference' => 'Invoice Journal',
@@ -6112,6 +6127,10 @@ class Utility extends Model
                         $journalItem->description = 'Tax on Invoice No : ' . @$data['no'];
                         $journalItem->credit = $tax;
                         $journalItem->debit = 0;
+                        $journalItem->re_project_id = $data['re_project_id'] ?? null;
+                        $journalItem->tower_id = $data['tower_id'] ?? null;
+                        $journalItem->floor_id = $data['floor_id'] ?? null;
+                        $journalItem->unit_id = $data['unit_id'] ?? null;
                         $journalItem->save();
                         $journalItem->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
                         $journalItem->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
@@ -6135,7 +6154,14 @@ class Utility extends Model
                 }
                 $tax = 0;
             }
-            $account = self::getAccountReceivable(@$data['created_by']);
+            
+            // Use project receivable account if provided, otherwise use default
+            if ($projectReceivableAccountId) {
+                $account = ChartOfAccount::find($projectReceivableAccountId);
+            } else {
+                $account = self::getAccountReceivable(@$data['created_by']);
+            }
+            
             // dd($account);
             if ($account) {
                 $journalItem = new JournalItem();
@@ -6144,6 +6170,10 @@ class Utility extends Model
                 $journalItem->description = 'Reciveable on Invoice No : ' . @$data['no'];
                 $journalItem->credit = 0;
                 $journalItem->debit = $reciveable;
+                $journalItem->re_project_id = $data['re_project_id'] ?? null;
+                $journalItem->tower_id = $data['tower_id'] ?? null;
+                $journalItem->floor_id = $data['floor_id'] ?? null;
+                $journalItem->unit_id = $data['unit_id'] ?? null;
                 $journalItem->save();
                 $journalItem->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
                 $journalItem->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
@@ -6237,6 +6267,10 @@ class Utility extends Model
         $journal->voucher_type = 'BRV';
         $journal->owned_by = $data['owned_by'];
         $journal->created_by = $data['created_by'];
+        $journal->re_project_id = $data['re_project_id'] ?? null;
+        $journal->tower_id = $data['tower_id'] ?? null;
+        $journal->floor_id = $data['floor_id'] ?? null;
+        $journal->unit_id = $data['unit_id'] ?? null;
         $journal->save();
         $journal->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
         $journal->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
@@ -6251,6 +6285,10 @@ class Utility extends Model
         $journalItem->product_ids = $data['prod_id'];
         $journalItem->credit = 0;
         $journalItem->debit = $data['amount'];
+        $journalItem->re_project_id = $data['re_project_id'] ?? null;
+        $journalItem->tower_id = $data['tower_id'] ?? null;
+        $journalItem->floor_id = $data['floor_id'] ?? null;
+        $journalItem->unit_id = $data['unit_id'] ?? null;
         $journalItem->save();
         $journalItem->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
         $journalItem->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
@@ -6299,6 +6337,10 @@ class Utility extends Model
             $journalItem->description = $data['description'];
             $journalItem->credit = $data['amount'];
             $journalItem->debit = 0;
+            $journalItem->re_project_id = $data['re_project_id'] ?? null;
+            $journalItem->tower_id = $data['tower_id'] ?? null;
+            $journalItem->floor_id = $data['floor_id'] ?? null;
+            $journalItem->unit_id = $data['unit_id'] ?? null;
             $journalItem->save();
             $journalItem->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
             $journalItem->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
@@ -6370,6 +6412,10 @@ class Utility extends Model
         $journal->voucher_type = 'CRV';
         $journal->owned_by = $data['owned_by'];
         $journal->created_by = $data['created_by'];
+        $journal->re_project_id = $data['re_project_id'] ?? null;
+        $journal->tower_id = $data['tower_id'] ?? null;
+        $journal->floor_id = $data['floor_id'] ?? null;
+        $journal->unit_id = $data['unit_id'] ?? null;
         $journal->save();
         $journal->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
         $journal->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
@@ -6384,6 +6430,10 @@ class Utility extends Model
         $journalItem->product_ids = $data['prod_id'];
         $journalItem->credit = 0;
         $journalItem->debit = $data['amount'];
+        $journalItem->re_project_id = $data['re_project_id'] ?? null;
+        $journalItem->tower_id = $data['tower_id'] ?? null;
+        $journalItem->floor_id = $data['floor_id'] ?? null;
+        $journalItem->unit_id = $data['unit_id'] ?? null;
         $journalItem->save();
         $journalItem->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
         $journalItem->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
@@ -6431,6 +6481,10 @@ class Utility extends Model
             $journalItem->description = $data['description'];
             $journalItem->credit = $data['amount'];
             $journalItem->debit = 0;
+            $journalItem->re_project_id = $data['re_project_id'] ?? null;
+            $journalItem->tower_id = $data['tower_id'] ?? null;
+            $journalItem->floor_id = $data['floor_id'] ?? null;
+            $journalItem->unit_id = $data['unit_id'] ?? null;
             $journalItem->save();
             $journalItem->created_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');
             $journalItem->updated_at = @$data['created_at'] ? date('Y-m-d H:i:s', strtotime($data['created_at'])) : date('Y-m-d H:i:s');

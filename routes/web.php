@@ -1949,9 +1949,12 @@ Route::group(['middleware' => ['verified']], function () {
         Route::post('/{id}/submit', [\App\Http\Controllers\REProjectController::class, 'finalSubmit'])->name('re-projects.submit');
         Route::get('/{id}/data', [\App\Http\Controllers\REProjectController::class, 'getProjectData'])->name('re-projects.data');
         Route::get('/{id}/units/{unitId}', [\App\Http\Controllers\REProjectController::class, 'getUnit'])->name('re-projects.get-unit');
+        Route::get('/{id}/units/{unitId}/show', [\App\Http\Controllers\REProjectController::class, 'showUnit'])->name('re-projects.units.show');
         Route::put('/{id}/units/{unitId}', [\App\Http\Controllers\REProjectController::class, 'updateUnit'])->name('re-projects.update-unit');
         Route::get('/{id}/floors-json', [\App\Http\Controllers\REProjectController::class, 'getFloorsJson'])->name('re-projects.floors-json');
         Route::get('/floors/{floorId}/units-json', [\App\Http\Controllers\REProjectController::class, 'getUnitsJson'])->name('re-projects.units-json');
+        Route::get('/{id}/edit-basic-info', [\App\Http\Controllers\REProjectController::class, 'editBasicInfo'])->name('re-projects.edit-basic-info');
+        Route::put('/{id}/update-basic-info', [\App\Http\Controllers\REProjectController::class, 'updateBasicInfo'])->name('re-projects.update-basic-info');
         Route::get('/{id}', [\App\Http\Controllers\REProjectController::class, 'show'])->name('re-projects.show');
     });
 

@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('custom_fields', function (Blueprint $table) {
-            $table->text('is_required')->default('no')->after('module');
-            $table->text('values')->nullable()->after('is_required');
+            if (!Schema::hasColumn('custom_fields', 'is_required')) {
+                $table->text('is_required')->default('no')->after('module');
+            }
+            if (!Schema::hasColumn('custom_fields', 'values')) {
+                $table->text('values')->nullable()->after('is_required');
+            }
         });
     }
 
@@ -23,8 +27,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('custom_fields', function (Blueprint $table) {
-            $table->dropColumn('is_required');
-            $table->dropColumn('values');
+            if (Schema::hasColumn('custom_fields', 'is_required')) {
+                $table->dropColumn('is_required');
+            }
+            if (Schema::hasColumn('custom_fields', 'values')) {
+                $table->dropColumn('values');
+            }
         });
     }
 };

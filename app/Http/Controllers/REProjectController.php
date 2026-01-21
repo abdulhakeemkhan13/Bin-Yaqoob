@@ -464,6 +464,81 @@ class REProjectController extends Controller
     }
 
     /**
+     * Show form to edit basic info for active projects.
+     */
+    public function editBasicInfo($id)
+    {
+        $project = ReProject::findOrFail($id);
+        
+        // Only allow editing for active projects
+        if ($project->status !== 'Active') {
+            return redirect()->route('re-projects.show', $id)
+                ->with('error', __('Only active projects can be edited.'));
+        }
+        
+        $chartOfAccounts = ChartOfAccount::where('created_by', Auth::user()->creatorId())->pluck('name', 'id');
+        
+        return view('reproject.edit_basic_info', compact('project', 'chartOfAccounts'));
+    }
+
+    /**
+     * Update basic info for active projects.
+     */
+    public function updateBasicInfo(Request $request, $id)
+    {
+        $project = ReProject::findOrFail($id);
+        
+        // Only allow editing for active projects
+        if ($project->status !== 'Active') {
+            return redirect()->route('re-projects.show', $id)
+                ->with('error', __('Only active projects can be edited.'));
+        }
+        
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'area' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
+            'type' => 'required|in:Residential,Commercial,Mixed',
+            'start_date' => 'nullable|date',
+            'expected_completion' => 'nullable|date|after_or_equal:start_date',
+            'description' => 'nullable|string',
+            'approval_authority' => 'nullable|string',
+            'noc_number' => 'nullable|string',
+            'approval_date' => 'nullable|date',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        try {
+            $project->update([
+                'name' => $request->name,
+                'city' => $request->city,
+                'area' => $request->area,
+                'address' => $request->address,
+                'type' => $request->type,
+                'start_date' => $request->start_date,
+                'expected_completion' => $request->expected_completion,
+                'description' => $request->description,
+                'approval_authority' => $request->approval_authority,
+                'noc_number' => $request->noc_number,
+                'approval_date' => $request->approval_date,
+                'income_account_id' => $request->income_account_id ?: null,
+                'receivable_account_id' => $request->receivable_account_id ?: null,
+            ]);
+
+            return redirect()->route('re-projects.show', $id)
+                ->with('success', __('Project basic info updated successfully.'));
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', __('Failed to update project info.'))
+                ->withInput();
+        }
+    }
+
+    /**
      * Get project data for review (AJAX).
      */
     public function getProjectData($id)
@@ -574,5 +649,46 @@ class REProjectController extends Controller
             'message' => __('Unit updated successfully.'),
             'unit' => $unit->fresh(),
         ]);
+    }
+
+    /**
+     * Show unit details page.
+     */
+    public function showUnit($projectId, $unitId)
+    {
+        $project = ReProject::findOrFail($projectId);
+        $unit = ReUnit::with(['floor', 'booking.customer', 'contract.installments', 'contract.customer'])->findOrFail($unitId);
+
+        \Log::info('Unit Details Debug', [
+            'unit_id' => $unitId,
+            'unit_status' => $unit->status,
+            'has_booking' => $unit->booking ? true : false,
+            'booking_data' => $unit->booking ? [
+                'customer_name' => $unit->booking->customer_name,
+                'customer_phone' => $unit->booking->customer_phone,
+                'customer_email' => $unit->booking->customer_email,
+                'booking_date' => $unit->booking->booking_date,
+            ] : null,
+            'has_contract' => $unit->contract ? true : false,
+            'contract_id' => $unit->contract ? $unit->contract->id : null,
+            'contract_status' => $unit->contract ? $unit->contract->status : null,
+        ]);
+
+        $contract = $unit->contract;
+        $installments = $contract ? $contract->installments : collect();
+
+        \Log::info('Installments Debug', [
+            'installments_count' => $installments->count(),
+            'installments_data' => $installments->map(function($inst) {
+                return [
+                    'number' => $inst->installment_number,
+                    'type' => $inst->installment_type,
+                    'amount' => $inst->amount,
+                    'status' => $inst->status,
+                ];
+            })->toArray(),
+        ]);
+
+        return view('reproject.unit_show', compact('project', 'unit', 'contract', 'installments'));
     }
 }
