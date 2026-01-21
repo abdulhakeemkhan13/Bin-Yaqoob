@@ -27,6 +27,22 @@ class Contract extends Model
         'down_payment_amount',
         'deal_id',
         'customer_id',
+        'contract_no',
+        're_project_id',
+        'tower_id',
+        'floor_id',
+        'unit_id',
+        'sale_price',
+        'price_per_sqft',
+        'discount_amount',
+        'other_charges',
+        'net_sale_price',
+        'booking_date',
+        'agreement_date',
+        'possession_due_date',
+        'payment_plan_type',
+        'penalty_percent_per_month',
+        'grace_days',
     ];
 
     public static $status = [
@@ -69,6 +85,41 @@ class Contract extends Model
     public function projects()
     {
         return $this->hasOne('App\Models\Project', 'id', 'project_id');
+    }
+
+    public function re_project()
+    {
+        return $this->belongsTo(ReProject::class, 're_project_id');
+    }
+
+    public function tower()
+    {
+        return $this->belongsTo(ReTower::class, 'tower_id');
+    }
+
+    public function floor()
+    {
+        return $this->belongsTo(ReFloor::class, 'floor_id');
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(ReUnit::class, 'unit_id');
+    }
+
+    public function owners()
+    {
+        return $this->hasMany(ContractOwner::class, 'contract_id');
+    }
+
+    public function installment_plan()
+    {
+        return $this->hasOne(FrozenInstallmentPlan::class, 'contract_id');
+    }
+
+    public function installments()
+    {
+        return $this->hasMany(ContractInstallment::class, 'contract_id')->orderBy('installment_number');
     }
     public function files()
     {

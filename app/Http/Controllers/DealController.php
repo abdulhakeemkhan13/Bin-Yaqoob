@@ -31,6 +31,15 @@ use App\Exports\DealExport;
 use App\Imports\DealImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use App\Models\Customer;
+use App\Models\CustomerDocument;
+use App\Models\ContractOwner;
+use App\Models\FrozenInstallmentPlan;
+use App\Models\ReProject;
+use App\Models\ReTower;
+use App\Models\ReFloor;
+use App\Models\ReUnit;
 use Auth;
 
 class DealController extends Controller
@@ -2517,14 +2526,39 @@ class DealController extends Controller
             $prefill = [
                 'subject' => $deal->name,
                 'value' => $deal->offered_price ?? $deal->price ?? 0,
-                'start_date' => $deal->created_at->format('Y-m-d'),
+                'start_date' => $deal->created_at ? $deal->created_at->format('Y-m-d') : date('Y-m-d'),
                 'end_date' => $deal->expected_closing_date ?? now()->addMonths(1)->format('Y-m-d'),
                 'description' => $deal->notes,
                 'client_id' => $selectedClient,
                 'deal_id' => $deal->id,
+                // real estate specific pre-fill
+                'full_name' => $deal->full_name ?? $deal->name,
+                'client_type' => $deal->customer_type ?? 'Individual',
+                'father_or_spouse_name' => $deal->father_or_company_name,
+                'cnic_number' => $deal->cnic_or_ntn,
+                'mobile_primary' => $deal->mobile_primary ?? $deal->phone,
+                'mobile_secondary' => $deal->mobile_secondary,
+                'nationality' => $deal->nationality,
+                'current_address' => $deal->current_address,
+                'permanent_address' => $deal->permanent_address,
+                'email' => $deal->email,
+                'project_name' => $deal->project->name ?? '',
+                'tower_name' => $deal->tower->tower_name ?? '',
+                'floor_name' => $deal->floor->floor_name ?? '',
+                'unit_name' => $deal->unit->unit_number ?? '',
             ];
+
+            $projects = \App\Models\ReProject::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $all_customers = \App\Models\Customer::where('created_by', \Auth::user()->creatorId())->get();
             
-            return view('deals.convert_to_contract_form', compact('deal', 'contractTypes', 'clients', 'customFields', 'prefill'));
+            $payment_plans = [];
+            if ($deal->re_project_id) {
+                $payment_plans = \App\Models\RePaymentPlan::whereHas('projects', function($q) use ($deal) {
+                    $q->where('re_projects.id', $deal->re_project_id);
+                })->where('is_active', true)->get();
+            }
+
+            return view('deals.convert_to_contract_form', compact('deal', 'contractTypes', 'clients', 'customFields', 'prefill', 'projects', 'all_customers', 'payment_plans'));
         } else {
             return response()->json(['error' => __('Permission Denied.')], 401);
         }
@@ -2539,10 +2573,15 @@ class DealController extends Controller
             $validator = \Validator::make(
                 $request->all(),
                 [
-                    'type' => 'required',
-                    'subject' => 'required',
-                    'start_date' => 'required|date',
-                    'end_date' => 'required|date|after_or_equal:start_date',
+                    'full_name' => 'required|string|max:191',
+                    'cnic_number' => 'required|string|max:191',
+                    'email' => 'required|email|max:191',
+                    'mobile_primary' => 'required|string|max:191',
+                    'subject' => 'required|string|max:191',
+                    'project_id' => 'required',
+                    'unit_id' => 'required',
+                    'sale_price' => 'required|numeric|min:0',
+                    'booking_date' => 'required|date',
                 ]
             );
 
@@ -2552,100 +2591,196 @@ class DealController extends Controller
             }
 
             $deal = Deal::findOrFail($id);
-            
-            // Find or create client from deal email/name
-            $clientId = $request->client_name;
-            if (empty($clientId) || $clientId == 0) {
-                if (!empty($deal->email)) {
-                    // Check if client exists by email
-                    $existingClient = User::where('email', $deal->email)->where('type', 'client')->first();
-                    
-                    if ($existingClient) {
-                        $clientId = $existingClient->id;
-                    } else {
-                        // Create new client
-                        $newClient = new User();
-                        $newClient->name = $deal->name;
-                        $newClient->email = $deal->email;
-                        $newClient->password = \Hash::make('password123'); // Default password
-                        $newClient->type = 'client';
-                        $newClient->lang = 'en';
-                        $newClient->created_by = \Auth::user()->creatorId();
-                        $newClient->owned_by = \Auth::user()->ownedId();
-                        $newClient->save();
+            $user = \Auth::user();
+            $creatorId = $user->creatorId();
+            $ownedId = $user->ownedId();
+
+            try {
+                DB::beginTransaction();
+
+                // 1. Handle Primary Customer
+                $customer = Customer::where('cnic_number', $request->cnic_number)
+                    ->where('created_by', $creatorId)
+                    ->first();
+
+                if (!$customer) {
+                    $customer = Customer::where('email', $request->email)
+                        ->where('created_by', $creatorId)
+                        ->first();
+                }
+
+                if (!$customer) {
+                    $customer = new Customer();
+                    $latest = Customer::where('created_by', $creatorId)->latest()->first();
+                    $customer->customer_id = $latest ? $latest->customer_id + 1 : 1;
+                }
+
+                $customer->fill($request->only([
+                    'client_type', 'full_name', 'father_or_spouse_name', 'date_of_birth',
+                    'nationality', 'cnic_number', 'mobile_primary', 'email',
+                    'current_address', 'permanent_address'
+                ]));
+                $customer->name = $request->full_name;
+                $customer->contact = $request->mobile_primary;
+                $customer->created_by = $creatorId;
+                $customer->owned_by = $ownedId;
+                $customer->is_active = 1;
+                $customer->save();
+
+                // 2. Handle User (Client) linkage
+                $clientUser = User::where('email', $request->email)->where('type', 'client')->first();
+                if (!$clientUser) {
+                    $clientUser = new User();
+                    $clientUser->name = $request->full_name;
+                    $clientUser->email = $request->email;
+                    $clientUser->password = \Hash::make('password123');
+                    $clientUser->type = 'client';
+                    $clientUser->lang = 'en';
+                    $clientUser->created_by = $creatorId;
+                    $clientUser->owned_by = $ownedId;
+                    $clientUser->save();
+
+                    $role = \Spatie\Permission\Models\Role::where('name', 'client')->first();
+                    if ($role) $clientUser->assignRole($role);
+                }
+                $customer->client_id = $clientUser->id;
+                $customer->save();
+
+                // 3. Create Contract
+                $contract = new \App\Models\Contract();
+                $contract->fill($request->only([
+                    'subject', 'tower_id', 'floor_id', 'unit_id',
+                    'sale_price', 'booking_date', 'agreement_date', 'possession_due_date',
+                    'payment_plan_type'
+                ]));
+                
+                $contract->re_project_id = $request->project_id;
+                $contract->project_id = $deal->project_id; // compatibility
+                $contract->customer_id = $customer->id;
+                $contract->client_name = $clientUser->id;
+                $contract->value = $request->sale_price;
+                $contract->net_sale_price = $request->sale_price;
+                $contract->deal_id = $id;
+                $contract->status = 'pending';
+                $contract->start_date = $request->booking_date;
+                $contract->end_date = $request->possession_due_date ?? now()->addYears(2)->format('Y-m-d');
+                $contract->created_by = $creatorId;
+                $contract->owned_by = $ownedId;
+                $contract->type = $request->type ?? 1; // fallback
+                $contract->save();
+
+                // 4. Handle Joint Owners
+                if ($request->has('joint_owners')) {
+                    foreach ($request->joint_owners as $jo) {
+                        if (empty($jo['name']) || empty($jo['cnic'])) continue;
+
+                        $jCustomer = Customer::where('cnic_number', $jo['cnic'])
+                            ->where('created_by', $creatorId)
+                            ->first();
                         
-                        // Assign client role
-                        $role = \Spatie\Permission\Models\Role::where('name', 'client')->first();
-                        if ($role) {
-                            $newClient->assignRole($role);
+                        if (!$jCustomer) {
+                            $jCustomer = new Customer();
+                            $latestJ = Customer::where('created_by', $creatorId)->latest()->first();
+                            $jCustomer->customer_id = $latestJ ? $latestJ->customer_id + 1 : 1;
                         }
-                        
-                        $clientId = $newClient->id;
+
+                        $jCustomer->full_name = $jo['name'];
+                        $jCustomer->name = $jo['name'];
+                        $jCustomer->cnic_number = $jo['cnic'];
+                        $jCustomer->mobile_primary = $jo['phone'];
+                        $jCustomer->created_by = $creatorId;
+                        $jCustomer->owned_by = $ownedId;
+                        $jCustomer->is_active = 1;
+                        $jCustomer->save();
+
+                        ContractOwner::create([
+                            'contract_id' => $contract->id,
+                            'customer_id' => $jCustomer->id,
+                            'ownership_percent' => $jo['percent'] ?? 0,
+                            'role' => 'Secondary'
+                        ]);
                     }
                 }
+
+                ContractOwner::create([
+                    'contract_id' => $contract->id,
+                    'customer_id' => $customer->id,
+                    'ownership_percent' => 100 - (collect($request->joint_owners)->sum('percent') ?? 0),
+                    'role' => 'Primary'
+                ]);
+
+                // 5. Freeze Installment Plan
+                $installmentPlan = FrozenInstallmentPlan::create([
+                    'contract_id' => $contract->id,
+                    'down_payment_amount' => $request->down_payment_amount ?? 0,
+                    'down_payment_due_date' => $request->booking_date,
+                    'installment_count' => $request->installment_count ?? 1,
+                    'installment_frequency' => $request->installment_frequency ?? 'Monthly',
+                    'installment_amount' => $request->installment_amount ?? 0,
+                    'total_payable' => $request->sale_price,
+                    'plan_start_date' => $request->booking_date,
+                ]);
+
+                // 6. Documents Upload
+                $docTypes = [
+                    'doc_cnic_front' => 'CNIC_FRONT',
+                    'doc_cnic_back' => 'CNIC_BACK',
+                    'doc_photo' => 'PHOTO',
+                    'doc_signature' => 'SIGNATURE'
+                ];
+
+                if (!file_exists(public_path('uploads/customer_documents'))) {
+                    mkdir(public_path('uploads/customer_documents'), 0777, true);
+                }
+
+                foreach ($docTypes as $inputName => $type) {
+                    if ($request->hasFile($inputName)) {
+                        $file = $request->file($inputName);
+                        $fileName = time() . '_' . $file->getClientOriginalName();
+                        $file->move(public_path('uploads/customer_documents'), $fileName);
+                        
+                        CustomerDocument::create([
+                            'customer_id' => $customer->id,
+                            'document_type' => $type,
+                            'file_path' => 'uploads/customer_documents/' . $fileName
+                        ]);
+                    }
+                }
+
+                // 7. Update Deal and Unit Status
+                $deal->status = 'Won';
+                $deal->contract_id = $contract->id;
+                $deal->save();
+
+                $unit = ReUnit::find($request->unit_id);
+                if ($unit) {
+                    $unit->status = 'Sold';
+                    $unit->save();
+                }
+
+                // 8. Generate Installment Schedule
+                if ($request->payment_plan_type === 'Installment' && $installmentPlan) {
+                    $this->generateInstallmentSchedule($contract, $installmentPlan, $request->unit_id);
+                }
+
+                if ($request->has('customField')) {
+                    CustomField::saveData($contract, $request->customField);
+                }
+
+                DB::commit();
+                if($request->ajax()){
+                    return response()->json([
+                        'success' => true,
+                        'message' => __('Deal successfully converted to contract.'),
+                        'redirect' => route('contract.show', $contract->id)
+                    ]);
+                }
+                return redirect()->route('contract.show', $contract->id)->with('success', __('Deal successfully converted to contract.'));
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['error' => $e->getMessage()], 500);
             }
-            
-            // Create contract from deal
-            $contract = new \App\Models\Contract();
-            $contract->subject = $request->subject;
-            $contract->client_name = $clientId;
-            
-            // Find or create customer and link to client
-            $customer = \App\Models\Customer::where('email', $deal->email)->first();
-            if (!$customer) {
-                $customer = new \App\Models\Customer();
-                $customer->name = $deal->name;
-                $customer->email = $deal->email;
-                $customer->contact = $deal->phone;
-                
-                // Set customer number
-                $user = \Auth::user();
-                $ownerId = $user->type === 'company' ? $user->creatorId() : $user->ownedId();
-                $column = ($user->type == 'company') ? 'created_by' : 'owned_by';
-                $latest = \App\Models\Customer::where($column, '=', $ownerId)->latest()->first();
-                $customer->customer_id = $latest ? $latest->customer_id + 1 : 1;
-                
-                $customer->created_by = \Auth::user()->creatorId();
-                $customer->owned_by = \Auth::user()->ownedId();
-                $customer->is_active = 1;
-            }
-            $customer->client_id = $clientId;
-            $customer->save();
-            
-            $contract->customer_id = $customer->id;
-            $contract->type = $request->type;
-            $contract->value = $request->value ?? 0;
-            $contract->start_date = $request->start_date;
-            $contract->end_date = $request->end_date;
-            $contract->description = $request->description;
-            $contract->project_id = $request->project_id;
-            
-            // Installment plan data
-            $contract->payment_plan_id = $request->payment_plan_id;
-            $contract->num_installments = $request->installments;
-            $contract->down_payment_percent = $request->down_payment_percent;
-            $contract->down_payment_amount = $request->down_payment;
-            $contract->deal_id = $id;
-            
-            $contract->created_by = \Auth::user()->creatorId();
-            $contract->owned_by = \Auth::user()->ownedId();
-            $contract->save();
-            
-            // Save custom fields
-            CustomField::saveData($contract, $request->customField);
-
-            // Update deal status to Won and link contract
-            $deal->status = 'Won';
-            $deal->contract_id = $contract->id;
-            $deal->save();
-
-            Utility::makeActivityLog(\Auth::user()->id, 'Deal', $deal->id, 'Converted to Contract', $deal->name);
-
-            return response()->json([
-                'success' => true, 
-                'message' => __('Deal successfully converted to contract.'),
-                'redirect' => route('contract.show', $contract->id)
-            ]);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 401);
         }
@@ -2683,5 +2818,92 @@ class DealController extends Controller
         });
         
         return response()->json($plans);
+    }
+
+    /**
+     * Generate installment schedule records for a contract
+     */
+    private function generateInstallmentSchedule($contract, $installmentPlan, $unitId)
+    {
+        $creatorId = \Auth::user()->creatorId();
+        $ownedId = \Auth::user()->ownedId();
+        
+        // Determine frequency in months
+        $frequency = $installmentPlan->installment_frequency ?? 'Monthly';
+        $frequencyMonths = match($frequency) {
+            'Monthly' => 1,
+            'Quarterly' => 3,
+            'Half-Yearly', '6 Months' => 6,
+            'Yearly' => 12,
+            default => 1,
+        };
+        
+        $startDate = $installmentPlan->plan_start_date 
+            ? \Carbon\Carbon::parse($installmentPlan->plan_start_date)
+            : \Carbon\Carbon::now();
+        
+        $installmentNumber = 1;
+        
+        // 1. First installment is Down Payment
+        if ($installmentPlan->down_payment_amount > 0) {
+            \App\Models\ContractInstallment::create([
+                'contract_id' => $contract->id,
+                'unit_id' => $unitId,
+                'installment_number' => $installmentNumber,
+                'installment_type' => 'down_payment',
+                'amount' => $installmentPlan->down_payment_amount,
+                'issue_date' => $startDate->copy(),
+                'due_date' => $installmentPlan->down_payment_due_date 
+                    ? \Carbon\Carbon::parse($installmentPlan->down_payment_due_date)
+                    : $startDate->copy()->addDays(7),
+                'status' => 'pending',
+                'description' => 'Down Payment',
+                'created_by' => $creatorId,
+                'owned_by' => $ownedId,
+            ]);
+            $installmentNumber++;
+        }
+        
+        // 2. Generate remaining installments
+        $numInstallments = $installmentPlan->installment_count ?? 0;
+        $totalPayable = $installmentPlan->total_payable ?? 0;
+        $downPayment = $installmentPlan->down_payment_amount ?? 0;
+        
+        // Calculate remaining amount after down payment
+        $remainingAmount = $totalPayable - $downPayment;
+        
+        // Calculate per installment amount (rounded to 2 decimals)
+        $installmentAmount = $numInstallments > 0 ? round($remainingAmount / $numInstallments, 2) : 0;
+        
+        // Track total disbursed for rounding adjustment
+        $totalDisbursed = $downPayment;
+        
+        for ($i = 0; $i < $numInstallments; $i++) {
+            $issueDate = $startDate->copy()->addMonths($frequencyMonths * $i);
+            $dueDate = $issueDate->copy()->addDays(15); // 15 days grace period
+            
+            // For last installment, adjust for rounding difference
+            $amount = $installmentAmount;
+            if ($i == $numInstallments - 1) {
+                // Last installment gets the remaining balance to ensure exact total
+                $amount = round($totalPayable - $totalDisbursed, 2);
+            }
+            $totalDisbursed += $amount;
+            
+            \App\Models\ContractInstallment::create([
+                'contract_id' => $contract->id,
+                'unit_id' => $unitId,
+                'installment_number' => $installmentNumber,
+                'installment_type' => 'installment',
+                'amount' => $amount,
+                'issue_date' => $issueDate,
+                'due_date' => $dueDate,
+                'status' => 'pending',
+                'description' => 'Installment #' . ($i + 1),
+                'created_by' => $creatorId,
+                'owned_by' => $ownedId,
+            ]);
+            $installmentNumber++;
+        }
     }
 }

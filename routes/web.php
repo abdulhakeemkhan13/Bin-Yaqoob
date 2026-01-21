@@ -623,6 +623,7 @@ Route::group(['middleware' => ['verified']], function () {
             Route::post('invoice/product/destroy', [InvoiceController::class, 'productDestroy'])->name('invoice.product.destroy');
             Route::post('invoice/product', [InvoiceController::class, 'product'])->name('invoice.product');
             Route::post('invoice/customer', [InvoiceController::class, 'customer'])->name('invoice.customer');
+            Route::post('invoice/customer-contracts', [InvoiceController::class, 'getCustomerContracts'])->name('invoice.customer.contracts');
             Route::get('invoice/{id}/sent', [InvoiceController::class, 'sent'])->name('invoice.sent');
             Route::get('invoice/{id}/resent', [InvoiceController::class, 'resent'])->name('invoice.resent');
             Route::get('invoice/{id}/payment', [InvoiceController::class, 'payment'])->name('invoice.payment');

@@ -9,6 +9,12 @@ class Invoice extends Model
     protected $fillable = [
         'invoice_id',
         'customer_id',
+        'contract_id',
+        'installment_id',
+        're_project_id',
+        'tower_id',
+        'floor_id',
+        'unit_id',
         'issue_date',
         'due_date',
         'ref_number',

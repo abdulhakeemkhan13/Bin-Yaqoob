@@ -40,6 +40,29 @@ class Customer extends Authenticatable
         'shipping_zip',
         'shipping_address',
         'client_id',
+        'client_type',
+        'full_name',
+        'father_or_spouse_name',
+        'date_of_birth',
+        'nationality',
+        'cnic_number',
+        'cnic_issue_date',
+        'cnic_expiry_date',
+        'company_name',
+        'company_reg_no',
+        'ntn_number',
+        'sales_tax_no',
+        'mobile_primary',
+        'mobile_secondary',
+        'current_address',
+        'permanent_address',
+        'city',
+        'country',
+        'source_of_funds',
+        'employer_or_business',
+        'filer_status',
+        'is_pep',
+        'client_status',
     ];
 
     protected $hidden = [
@@ -279,6 +302,11 @@ class Customer extends Authenticatable
         $invoices = Invoice:: where('customer_id', $customerId)->count();
 
         return $invoices;
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(CustomerDocument::class, 'customer_id');
     }
 
     public static function customer_id($customer_name)

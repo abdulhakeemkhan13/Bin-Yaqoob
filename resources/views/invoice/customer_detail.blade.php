@@ -1,41 +1,36 @@
-@if(!empty($customer))
+@if (!empty($customer))
     <div class="row">
-        <div class="col-md-5">
-            <h6>{{__('Bill to')}}</h6>
-            <div class="bill-to">
-                @if(!empty($customer['billing_name']))
-                <small>
-                    <span>{{$customer['billing_name']}}</span><br>
-                    <span>{{$customer['billing_phone']}}</span><br>
-                    <span>{{$customer['billing_address']}}</span><br>
-                    <span>{{$customer['billing_city'] . ' , '.$customer['billing_state'].' , '.$customer['billing_country'].'.'}}</span><br>
-                    <span>{{$customer['billing_zip']}}</span>
-
-                </small>
-                @else
-                    <br> -
-                @endif
-            </div>
-        </div>
-        <div class="col-md-5">
-            <h6>{{__('Ship to')}}</h6>
-            <div class="bill-to">
-                @if(!empty($customer['shipping_name']))
-                <small>
-                    <span>{{$customer['shipping_name']}}</span><br>
-                    <span>{{$customer['shipping_phone']}}</span><br>
-                    <span>{{$customer['shipping_address']}}</span><br>
-                    <span>{{$customer['shipping_city'] . ' , '.$customer['shipping_state'].' , '.$customer['shipping_country'].'.'}}</span><br>
-                    <span>{{$customer['shipping_zip']}}</span>
-
-                </small>
-                @else
-                    <br> -
-                @endif
+        <div class="col-md-10">
+            <h6>{{ __('Customer Details') }}</h6>
+            <div class="customer-info">
+                <div class="row">
+                    <div class="col-md-4">
+                        <small class="text-muted">{{ __('Name') }}</small>
+                        <p class="mb-1"><strong>{{ $customer->name ?? '-' }}</strong></p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">{{ __('Email') }}</small>
+                        <p class="mb-1">{{ $customer->email ?? '-' }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">{{ __('Contact') }}</small>
+                        <p class="mb-1">{{ $customer->contact ?? '-' }}</p>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-4">
+                        <small class="text-muted">{{ __('CNIC') }}</small>
+                        <p class="mb-1">{{ $customer->cnic_number ?? '-' }}</p>
+                    </div>
+                    <div class="col-md-8">
+                        <small class="text-muted">{{ __('Address') }}</small>
+                        <p class="mb-1">{{ $customer->billing_address ?? ($customer->current_address ?? '-') }}</p>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-md-2">
-            <a href="#" id="remove" class="text-sm">{{__(' Remove')}}</a>
+            <a href="#" id="remove" class="text-sm text-danger">{{ __('Remove') }}</a>
         </div>
     </div>
 @endif

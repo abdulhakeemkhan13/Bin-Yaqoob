@@ -276,6 +276,13 @@
                                 <div class="float-end"><i class="ti ti-chevron-right"></i></div>
                             </a>
 
+                            @if (!empty($deal->contract_id))
+                                <a href="#contract_details"
+                                    class="list-group-item list-group-item-action border-0">{{ __('Contract Details') }}
+                                    <div class="float-end"><i class="ti ti-chevron-right"></i></div>
+                                </a>
+                            @endif
+
                             @if (Auth::user()->type != 'client')
                                 <a href="#custom"
                                     class="list-group-item list-group-item-action border-0">{{ __('Custom Field') }}
@@ -496,6 +503,122 @@
                             </div>
                         </div>
                     </div>
+
+                    @if (!empty($deal->contract_id) && $deal->contract)
+                        @php $contract = $deal->contract; @endphp
+                        <div id="contract_details" class="card mt-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5>{{ __('Contract Details') }}</h5>
+                                    <a href="{{ route('contract.show', $contract->id) }}" class="btn btn-sm btn-primary">
+                                        <i class="ti ti-eye"></i> {{ __('View Full Contract') }}
+                                    </a>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-md-3 col-sm-6">
+                                        <p class="text-muted text-sm mb-0">{{ __('Contract No') }}</p>
+                                        <h6 class="mb-0">{{ $contract->contract_no ?? $contract->id }}</h6>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p class="text-muted text-sm mb-0">{{ __('Subject') }}</p>
+                                        <h6 class="mb-0">{{ $contract->subject ?? '-' }}</h6>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p class="text-muted text-sm mb-0">{{ __('Status') }}</p>
+                                        <h6 class="mb-0"><span
+                                                class="badge bg-primary">{{ $contract->status ?? '-' }}</span></h6>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p class="text-muted text-sm mb-0">{{ __('Sale Price') }}</p>
+                                        <h6 class="mb-0 text-success">
+                                            {{ \Auth::user()->priceFormat($contract->sale_price ?? $contract->value) }}
+                                        </h6>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-3 col-sm-6">
+                                        <p class="text-muted text-sm mb-0">{{ __('Booking Date') }}</p>
+                                        <h6 class="mb-0">
+                                            {{ !empty($contract->booking_date) ? \Auth::user()->dateFormat($contract->booking_date) : '-' }}
+                                        </h6>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p class="text-muted text-sm mb-0">{{ __('Agreement Date') }}</p>
+                                        <h6 class="mb-0">
+                                            {{ !empty($contract->agreement_date) ? \Auth::user()->dateFormat($contract->agreement_date) : '-' }}
+                                        </h6>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p class="text-muted text-sm mb-0">{{ __('Possession Due') }}</p>
+                                        <h6 class="mb-0">
+                                            {{ !empty($contract->possession_due_date) ? \Auth::user()->dateFormat($contract->possession_due_date) : '-' }}
+                                        </h6>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p class="text-muted text-sm mb-0">{{ __('Payment Plan Type') }}</p>
+                                        <h6 class="mb-0">{{ $contract->payment_plan_type ?? '-' }}</h6>
+                                    </div>
+                                </div>
+
+                                @if ($contract->installment_plan)
+                                    <hr>
+                                    <h6 class="text-muted">{{ __('Installment Plan') }}</h6>
+                                    <div class="row">
+                                        <div class="col-md-3 col-sm-6">
+                                            <p class="text-muted text-sm mb-0">{{ __('Down Payment') }}</p>
+                                            <h6 class="mb-0">
+                                                {{ \Auth::user()->priceFormat($contract->installment_plan->down_payment_amount ?? 0) }}
+                                            </h6>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <p class="text-muted text-sm mb-0">{{ __('No. of Installments') }}</p>
+                                            <h6 class="mb-0">{{ $contract->installment_plan->installment_count ?? 0 }}
+                                            </h6>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <p class="text-muted text-sm mb-0">{{ __('Per Installment') }}</p>
+                                            <h6 class="mb-0">
+                                                {{ \Auth::user()->priceFormat($contract->installment_plan->installment_amount ?? 0) }}
+                                            </h6>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <p class="text-muted text-sm mb-0">{{ __('Total Payable') }}</p>
+                                            <h6 class="mb-0 text-primary">
+                                                {{ \Auth::user()->priceFormat($contract->installment_plan->total_payable ?? 0) }}
+                                            </h6>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if ($contract->customer)
+                                    <hr>
+                                    <h6 class="text-muted">{{ __('Customer Information') }}</h6>
+                                    <div class="row">
+                                        <div class="col-md-3 col-sm-6">
+                                            <p class="text-muted text-sm mb-0">{{ __('Customer Name') }}</p>
+                                            <h6 class="mb-0">
+                                                {{ $contract->customer->full_name ?? $contract->customer->name }}</h6>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <p class="text-muted text-sm mb-0">{{ __('CNIC') }}</p>
+                                            <h6 class="mb-0">{{ $contract->customer->cnic_number ?? '-' }}</h6>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <p class="text-muted text-sm mb-0">{{ __('Email') }}</p>
+                                            <h6 class="mb-0">{{ $contract->customer->email ?? '-' }}</h6>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <p class="text-muted text-sm mb-0">{{ __('Mobile') }}</p>
+                                            <h6 class="mb-0">
+                                                {{ $contract->customer->mobile_primary ?? $contract->customer->contact }}
+                                            </h6>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
                     <div id="custom" class="card mt-3">
                         <div class="card-body">
                             <div class="row">

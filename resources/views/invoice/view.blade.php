@@ -386,18 +386,21 @@
 
                                 <div class="col">
                                     <small class="font-style">
-                                        <strong>{{ __('Billed To') }} :</strong><br>
-                                        @if (!empty($customer->billing_name))
-                                            {{ !empty($customer->billing_name) ? $customer->billing_name : '' }}<br>
-                                            {{ !empty($customer->billing_address) ? $customer->billing_address : '' }}<br>
-                                            {{ !empty($customer->billing_city) ? $customer->billing_city : '' . ', ' }}<br>
-                                            {{ !empty($customer->billing_state) ? $customer->billing_state : '', ', ' }},
-                                            {{ !empty($customer->billing_zip) ? $customer->billing_zip : '' }}<br>
-                                            {{ !empty($customer->billing_country) ? $customer->billing_country : '' }}<br>
-                                            {{ !empty($customer->billing_phone) ? $customer->billing_phone : '' }}<br>
-                                            @if ($settings['vat_gst_number_switch'] == 'on')
-                                                <strong>{{ __('Tax Number ') }} :
-                                                </strong>{{ !empty($customer->tax_number) ? $customer->tax_number : '' }}
+                                        <strong>{{ __('Client Details') }} :</strong><br>
+                                        @if (!empty($customer))
+                                            <strong>{{ $customer->name ?? '-' }}</strong><br>
+                                            @if ($customer->email)
+                                                <i class="ti ti-mail"></i> {{ $customer->email }}<br>
+                                            @endif
+                                            @if ($customer->contact)
+                                                <i class="ti ti-phone"></i> {{ $customer->contact }}<br>
+                                            @endif
+                                            @if ($customer->cnic_number)
+                                                <i class="ti ti-id"></i> {{ $customer->cnic_number }}<br>
+                                            @endif
+                                            @if ($customer->billing_address || $customer->current_address)
+                                                <i class="ti ti-map-pin"></i>
+                                                {{ $customer->billing_address ?? $customer->current_address }}<br>
                                             @endif
                                         @else
                                             -
@@ -406,24 +409,43 @@
                                     </small>
                                 </div>
 
-                                @if (App\Models\Utility::getValByName('shipping_display') == 'on')
-                                    <div class="col ">
-                                        <small>
-                                            <strong>{{ __('Shipped To') }} :</strong><br>
-                                            @if (!empty($customer->shipping_name))
-                                                {{ !empty($customer->shipping_name) ? $customer->shipping_name : '' }}<br>
-                                                {{ !empty($customer->shipping_address) ? $customer->shipping_address : '' }}<br>
-                                                {{ !empty($customer->shipping_city) ? $customer->shipping_city : '' . ', ' }}<br>
-                                                {{ !empty($customer->shipping_state) ? $customer->shipping_state : '' . ', ' }},
-                                                {{ !empty($customer->shipping_zip) ? $customer->shipping_zip : '' }}<br>
-                                                {{ !empty($customer->shipping_country) ? $customer->shipping_country : '' }}<br>
-                                                {{ !empty($customer->shipping_phone) ? $customer->shipping_phone : '' }}<br>
-                                            @else
-                                                -
+                                <div class="col">
+                                    <small class="font-style">
+                                        <strong>{{ __('Property Details') }} :</strong><br>
+                                        @php
+                                            $project = $invoice->re_project_id
+                                                ? \App\Models\REProject::find($invoice->re_project_id)
+                                                : null;
+                                            $tower = $invoice->tower_id
+                                                ? \App\Models\ReTower::find($invoice->tower_id)
+                                                : null;
+                                            $floor = $invoice->floor_id
+                                                ? \App\Models\REFloor::find($invoice->floor_id)
+                                                : null;
+                                            $unit = $invoice->unit_id
+                                                ? \App\Models\ReUnit::find($invoice->unit_id)
+                                                : null;
+                                        @endphp
+                                        @if ($project || $tower || $floor || $unit)
+                                            @if ($project)
+                                                <strong>{{ __('Project') }}:</strong> {{ $project->name }}<br>
                                             @endif
-                                        </small>
-                                    </div>
-                                @endif
+                                            @if ($tower)
+                                                <strong>{{ __('Block/Tower') }}:</strong> {{ $tower->name }}<br>
+                                            @endif
+                                            @if ($floor)
+                                                <strong>{{ __('Floor') }}:</strong>
+                                                {{ $floor->name ?? 'Floor ' . $floor->floor_number }}<br>
+                                            @endif
+                                            @if ($unit)
+                                                <strong>{{ __('Unit') }}:</strong> {{ $unit->unit_number }}
+                                                ({{ $unit->unit_type }})<br>
+                                            @endif
+                                        @else
+                                            -
+                                        @endif
+                                    </small>
+                                </div>
                                 <div class="col">
                                     <div class="float-end mt-3">
                                         {!! DNS2D::getBarcodeHTML(
@@ -482,7 +504,7 @@
                                                 <th class="text-dark">{{ __('Quantity') }}</th>
                                                 <th class="text-dark">{{ __('Rate') }}</th>
                                                 <th class="text-dark">{{ __('Discount') }}</th>
-                                                <th class="text-dark">{{ __('Tax') }}</th>
+                                                <th class="text-dark d-none">{{ __('Tax') }}</th>
                                                 <th class="text-dark">{{ __('Description') }}</th>
                                                 <th class="text-end text-dark" width="12%">{{ __('Price') }}<br>
                                                     <small
@@ -522,7 +544,8 @@
                                                         $totalDiscount += $iteam->discount;
                                                     @endphp
                                                     <td>{{ !empty($productName) ? $productName->name : '' }}</td>
-                                                    <td>{{ $iteam->quantity . ' (' . (isset($productName->unit) ? $productName->unit->name : 'No unit') . ')' }}</td>
+                                                    <td>{{ $iteam->quantity . ' (' . (isset($productName->unit) ? $productName->unit->name : 'No unit') . ')' }}
+                                                    </td>
                                                     <td>{{ \Auth::user()->priceFormat($iteam->price) }}</td>
                                                     <td>{{ \Auth::user()->priceFormat($iteam->discount) }}</td>
 
@@ -548,7 +571,7 @@
                                                         @endif
                                                     </td> --}}
 
-                                                    <td>
+                                                    <td class="d-none">
                                                         @if (!empty($iteam->tax))
                                                             <table>
                                                                 @php
@@ -557,17 +580,35 @@
 
                                                                     if (!empty($iteam->tax)) {
                                                                         foreach (explode(',', $iteam->tax) as $tax) {
-                                                                            $taxPrice = \Utility::taxRate($getTaxData[$tax]['rate'], $iteam->price, $iteam->quantity);
+                                                                            $taxPrice = \Utility::taxRate(
+                                                                                $getTaxData[$tax]['rate'],
+                                                                                $iteam->price,
+                                                                                $iteam->quantity,
+                                                                            );
                                                                             $totalTaxPrice += $taxPrice;
-                                                                            $itemTax['name'] = $getTaxData[$tax]['name'];
-                                                                            $itemTax['rate'] = $getTaxData[$tax]['rate'] . '%';
-                                                                            $itemTax['price'] = \Auth::user()->priceFormat($taxPrice);
+                                                                            $itemTax['name'] =
+                                                                                $getTaxData[$tax]['name'];
+                                                                            $itemTax['rate'] =
+                                                                                $getTaxData[$tax]['rate'] . '%';
+                                                                            $itemTax[
+                                                                                'price'
+                                                                            ] = \Auth::user()->priceFormat($taxPrice);
 
                                                                             $itemTaxes[] = $itemTax;
-                                                                            if (array_key_exists($getTaxData[$tax]['name'], $taxesData)) {
-                                                                                $taxesData[$getTaxData[$tax]['name']] = $taxesData[$getTaxData[$tax]['name']] + $taxPrice;
+                                                                            if (
+                                                                                array_key_exists(
+                                                                                    $getTaxData[$tax]['name'],
+                                                                                    $taxesData,
+                                                                                )
+                                                                            ) {
+                                                                                $taxesData[$getTaxData[$tax]['name']] =
+                                                                                    $taxesData[
+                                                                                        $getTaxData[$tax]['name']
+                                                                                    ] + $taxPrice;
                                                                             } else {
-                                                                                $taxesData[$getTaxData[$tax]['name']] = $taxPrice;
+                                                                                $taxesData[
+                                                                                    $getTaxData[$tax]['name']
+                                                                                ] = $taxPrice;
                                                                             }
                                                                         }
                                                                         $iteam->itemTax = $itemTaxes;
@@ -576,11 +617,11 @@
                                                                     }
                                                                 @endphp
                                                                 @foreach ($iteam->itemTax as $tax)
-
-                                                                        <tr>
-                                                                            <td>{{$tax['name'] .' ('.$tax['rate'] .'%)'}}</td>
-                                                                            <td>{{ $tax['price']}}</td>
-                                                                        </tr>
+                                                                    <tr>
+                                                                        <td>{{ $tax['name'] . ' (' . $tax['rate'] . '%)' }}
+                                                                        </td>
+                                                                        <td>{{ $tax['price'] }}</td>
+                                                                    </tr>
                                                                 @endforeach
                                                             </table>
                                                         @else
@@ -601,7 +642,7 @@
                                                     <td><b>{{ $totalQuantity }}</b></td>
                                                     <td><b>{{ \Auth::user()->priceFormat($totalRate) }}</b></td>
                                                     <td><b>{{ \Auth::user()->priceFormat($totalDiscount) }}</b></td>
-                                                    <td><b>{{ \Auth::user()->priceFormat($totalTaxPrice) }}</b></td>
+                                                    <td class="d-none"><b>{{ \Auth::user()->priceFormat($totalTaxPrice) }}</b></td>
                                                     <td></td>
                                                 </tr>
                                                 <tr>

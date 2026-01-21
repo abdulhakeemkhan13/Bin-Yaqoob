@@ -80,10 +80,34 @@ class InvoiceController extends Controller
             $customers->prepend('Select Customer', '');
             $category = ProductServiceCategory::where($column, $ownerId)->where('type', 'income')->get()->pluck('name', 'id');
             $category->prepend('Select Category', '');
-            $product_services = ProductService::where($column, $ownerId)->get()->pluck('name', 'id');
+            $product_services = ProductService::where($column, $ownerId)->get()->mapWithKeys(function($product) {
+                return [$product->id => ($product->sku ? $product->sku . ' - ' : '') . $product->name];
+            });
             $product_services->prepend('--', '');
 
-            return view('invoice.create', compact('customers', 'invoice_number', 'product_services', 'category', 'customFields', 'customerId'));
+            // Check for installment pre-fill
+            $installment = null;
+            $contract = null;
+            $prefillCustomer = null;
+            $installmentId = request()->query('installment_id');
+            $contractId = request()->query('contract_id');
+
+            if ($installmentId) {
+                $installment = \App\Models\ContractInstallment::with(['contract.customer', 'unit'])->find($installmentId);
+                if ($installment) {
+                    $contract = $installment->contract;
+                    $customerId = $contract->customer_id ?? $customerId;
+                    $prefillCustomer = $contract->customer;
+                }
+            } elseif ($contractId) {
+                $contract = \App\Models\Contract::with('customer')->find($contractId);
+                if ($contract) {
+                    $customerId = $contract->customer_id ?? $customerId;
+                    $prefillCustomer = $contract->customer;
+                }
+            }
+
+            return view('invoice.create', compact('customers', 'invoice_number', 'product_services', 'category', 'customFields', 'customerId', 'installment', 'contract', 'prefillCustomer'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -93,6 +117,67 @@ class InvoiceController extends Controller
     {
         $customer = Customer::where('id', '=', $request->id)->first();
         return view('invoice.customer_detail', compact('customer'));
+    }
+
+    public function getCustomerContracts(Request $request)
+    {
+        $customerId = $request->customer_id;
+        
+        // Find contracts linked to this customer
+        $contracts = \App\Models\Contract::where('customer_id', $customerId)
+            ->where('created_by', \Auth::user()->creatorId())
+            ->with(['installment_plan', 'unit', 'installments'])
+            ->get()
+            ->map(function($contract) {
+                $installments = [];
+                $firstPendingInstallment = null;
+                
+                if ($contract->payment_plan_type == 'Installment') {
+                    if ($contract->installment_plan) {
+                        $installments = [
+                            'down_payment' => $contract->installment_plan->down_payment_amount,
+                            'installment_amount' => $contract->installment_plan->installment_amount,
+                            'installment_count' => $contract->installment_plan->installment_count,
+                        ];
+                    }
+                    
+                    // Get first pending installment
+                    $pending = $contract->installments
+                        ->where('status', 'pending')
+                        ->sortBy('installment_number')
+                        ->first();
+                    
+                    if ($pending) {
+                        $firstPendingInstallment = [
+                            'id' => $pending->id,
+                            'number' => $pending->installment_number,
+                            'type' => $pending->installment_type,
+                            'amount' => $pending->amount,
+                            'issue_date' => $pending->issue_date->format('Y-m-d'),
+                            'due_date' => $pending->due_date->format('Y-m-d'),
+                            'description' => $pending->description ?? ($pending->installment_type == 'down_payment' ? 'Down Payment' : 'Installment Payment'),
+                        ];
+                    }
+                }
+                
+                // Get the product linked to the unit
+                $productId = null;
+                if ($contract->unit && $contract->unit->product_id) {
+                    $productId = $contract->unit->product_id;
+                }
+                
+                return [
+                    'id' => $contract->id,
+                    'subject' => $contract->subject,
+                    'value' => $contract->sale_price ?? $contract->value,
+                    'payment_plan_type' => $contract->payment_plan_type ?? 'Installment',
+                    'installments' => $installments,
+                    'product_id' => $productId,
+                    'first_pending_installment' => $firstPendingInstallment,
+                ];
+            });
+        
+        return response()->json($contracts);
     }
 
     public function product(Request $request)
@@ -144,7 +229,45 @@ if ($request->issue_date > $request->due_date) {
             //            $invoice->discount_apply = isset($request->discount_apply) ? 1 : 0;
             $invoice->created_by = \Auth::user()->creatorId();
             $invoice->owned_by = \Auth::user()->ownedId();
+            
+            // Set contract-related fields if installment_id is provided
+            if ($request->has('installment_id') && $request->installment_id) {
+                $installment = \App\Models\ContractInstallment::with('contract')->find($request->installment_id);
+                if ($installment) {
+                    $invoice->installment_id = $installment->id;
+                    $invoice->contract_id = $installment->contract_id;
+                    
+                    // Get project/tower/floor/unit from contract
+                    if ($installment->contract) {
+                        $invoice->re_project_id = $installment->contract->re_project_id;
+                        $invoice->tower_id = $installment->contract->tower_id;
+                        $invoice->floor_id = $installment->contract->floor_id;
+                        $invoice->unit_id = $installment->contract->unit_id;
+                    }
+                }
+            } elseif ($request->has('contract_id') && $request->contract_id) {
+                $contract = \App\Models\Contract::find($request->contract_id);
+                if ($contract) {
+                    $invoice->contract_id = $contract->id;
+                    $invoice->re_project_id = $contract->re_project_id;
+                    $invoice->tower_id = $contract->tower_id;
+                    $invoice->floor_id = $contract->floor_id;
+                    $invoice->unit_id = $contract->unit_id;
+                }
+            }
+            
             $invoice->save();
+            
+            // Link invoice to installment if provided (update installment's invoice_id and status)
+            if ($request->has('installment_id') && $request->installment_id) {
+                $installment = \App\Models\ContractInstallment::find($request->installment_id);
+                if ($installment) {
+                    $installment->invoice_id = $invoice->id;
+                    $installment->status = 'generated';
+                    $installment->save();
+                }
+            }
+            
             CustomField::saveData($invoice, $request->customField);
             $products = $request->items;
 
@@ -321,7 +444,9 @@ if ($request->issue_date > $request->due_date) {
             $customers = Customer::where($column, $ownerId)->get()->pluck('name', 'id');
             $category = ProductServiceCategory::where($column, $ownerId)->where('type', 'income')->get()->pluck('name', 'id');
             $category->prepend('Select Category', '');
-            $product_services = ProductService::where($column, $ownerId)->get()->pluck('name', 'id');
+            $product_services = ProductService::where($column, $ownerId)->get()->mapWithKeys(function($product) {
+                return [$product->id => ($product->sku ? $product->sku . ' - ' : '') . $product->name];
+            });
             $invoice->customField = CustomField::getData($invoice, 'invoice');
             $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'invoice')->get();
 
@@ -357,6 +482,38 @@ if ($request->issue_date > $request->due_date) {
                 $invoice->ref_number = $request->ref_number;
                 //                $invoice->discount_apply = isset($request->discount_apply) ? 1 : 0;
                 $invoice->category_id = $request->category_id;
+                
+                // Update contract-related fields if installment_id is provided
+                if ($request->has('installment_id') && $request->installment_id) {
+                    $installment = \App\Models\ContractInstallment::with('contract')->find($request->installment_id);
+                    if ($installment) {
+                        $invoice->installment_id = $installment->id;
+                        $invoice->contract_id = $installment->contract_id;
+                        
+                        // Get project/tower/floor/unit from contract
+                        if ($installment->contract) {
+                            $invoice->re_project_id = $installment->contract->re_project_id;
+                            $invoice->tower_id = $installment->contract->tower_id;
+                            $invoice->floor_id = $installment->contract->floor_id;
+                            $invoice->unit_id = $installment->contract->unit_id;
+                        }
+                        
+                        // Update installment's invoice_id and status
+                        $installment->invoice_id = $invoice->id;
+                        $installment->status = 'generated';
+                        $installment->save();
+                    }
+                } elseif ($request->has('contract_id') && $request->contract_id) {
+                    $contract = \App\Models\Contract::find($request->contract_id);
+                    if ($contract) {
+                        $invoice->contract_id = $contract->id;
+                        $invoice->re_project_id = $contract->re_project_id;
+                        $invoice->tower_id = $contract->tower_id;
+                        $invoice->floor_id = $contract->floor_id;
+                        $invoice->unit_id = $contract->unit_id;
+                    }
+                }
+                
                 $invoice->save();
 
                 Utility::starting_number($invoice->invoice_id + 1, 'invoice');
