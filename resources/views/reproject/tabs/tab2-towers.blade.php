@@ -38,9 +38,9 @@
             </button>
         </div>
         <div class="col-6 text-end">
-            <button type="button" class="btn btn-outline-secondary me-2" onclick="skipTowersTab()">
+            {{-- <button type="button" class="btn btn-outline-secondary me-2" onclick="skipTowersTab()">
                 {{ __('Skip (No Towers)') }}
-            </button>
+            </button> --}}
             <button type="submit" class="btn btn-primary">
                 {{ __('Save & Continue') }} <i class="ti ti-arrow-right"></i>
             </button>

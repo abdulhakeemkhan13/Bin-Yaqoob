@@ -6322,12 +6322,19 @@ class Utility extends Model
         //     $journalItem->save();
         // }
 
-        $types = ChartOfAccountType::where('created_by', '=', $data['created_by'])->where('name', 'Assets')->first();
+        // Use project's receivable account if provided, otherwise use default Account Receivables
         $account = null;
-        if ($types) {
-            $sub_type = ChartOfAccountSubType::where('type', $types->id)->where('name', 'Current Asset')->first();
-            if ($sub_type) {
-                $account = ChartOfAccount::where('type', $types->id)->where('sub_type', $sub_type->id)->where('name', 'Account Receivables')->first();
+        if (!empty($data['receivable_account_id'])) {
+            $account = ChartOfAccount::find($data['receivable_account_id']);
+        }
+        
+        if (!$account) {
+            $types = ChartOfAccountType::where('created_by', '=', $data['created_by'])->where('name', 'Assets')->first();
+            if ($types) {
+                $sub_type = ChartOfAccountSubType::where('type', $types->id)->where('name', 'Current Asset')->first();
+                if ($sub_type) {
+                    $account = ChartOfAccount::where('type', $types->id)->where('sub_type', $sub_type->id)->where('name', 'Account Receivables')->first();
+                }
             }
         }
         if ($account) {
@@ -6466,12 +6473,19 @@ class Utility extends Model
         //     $journalItem->save();
         // }
 
-        $types = ChartOfAccountType::where('created_by', '=', $data['created_by'])->where('name', 'Assets')->first();
+        // Use project's receivable account if provided, otherwise use default Account Receivables
         $account = null;
-        if ($types) {
-            $sub_type = ChartOfAccountSubType::where('type', $types->id)->where('name', 'Current Asset')->first();
-            if ($sub_type) {
-                $account = ChartOfAccount::where('type', $types->id)->where('sub_type', $sub_type->id)->where('name', 'Account Receivables')->first();
+        if (!empty($data['receivable_account_id'])) {
+            $account = ChartOfAccount::find($data['receivable_account_id']);
+        }
+        
+        if (!$account) {
+            $types = ChartOfAccountType::where('created_by', '=', $data['created_by'])->where('name', 'Assets')->first();
+            if ($types) {
+                $sub_type = ChartOfAccountSubType::where('type', $types->id)->where('name', 'Current Asset')->first();
+                if ($sub_type) {
+                    $account = ChartOfAccount::where('type', $types->id)->where('sub_type', $sub_type->id)->where('name', 'Account Receivables')->first();
+                }
             }
         }
         if ($account) {

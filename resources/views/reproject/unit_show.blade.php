@@ -22,7 +22,7 @@
 @section('content')
     <div class="row">
         <!-- Unit Info Card -->
-        <div class="col-md-6">
+        <div class="col-md-12">
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
@@ -60,11 +60,13 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="text-muted small">{{ __('Covered Area') }}</label>
-                            <p class="mb-0">{{ $unit->covered_area ? number_format($unit->covered_area, 2) . ' sq ft' : '-' }}</p>
+                            <p class="mb-0">
+                                {{ $unit->covered_area ? number_format($unit->covered_area, 2) . ' sq ft' : '-' }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="text-muted small">{{ __('Price/Sqft') }}</label>
-                            <p class="mb-0">{{ $unit->price_per_sqft ? 'PKR ' . number_format($unit->price_per_sqft, 2) : '-' }}</p>
+                            <p class="mb-0">
+                                {{ $unit->price_per_sqft ? 'PKR ' . number_format($unit->price_per_sqft, 2) : '-' }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="text-muted small">{{ __('Total Price') }}</label>
@@ -108,7 +110,8 @@
 
                     @if ($unit->unit_type === 'Shop' || $unit->unit_type === 'Office')
                         <hr>
-                        <h6 class="text-primary mb-3"><i class="ti ti-building-store me-2"></i>{{ __('Shop/Office Details') }}</h6>
+                        <h6 class="text-primary mb-3"><i
+                                class="ti ti-building-store me-2"></i>{{ __('Shop/Office Details') }}</h6>
                         <div class="row">
                             <div class="col-md-4 mb-2">
                                 <label class="text-muted small">{{ __('Floor Position') }}</label>
@@ -143,7 +146,8 @@
                         <div class="row">
                             <div class="col-md-6 mb-2">
                                 <label class="text-muted small">{{ __('Terrace Area') }}</label>
-                                <p class="mb-0">{{ $unit->terrace_area ? number_format($unit->terrace_area, 2) . ' sq ft' : '-' }}</p>
+                                <p class="mb-0">
+                                    {{ $unit->terrace_area ? number_format($unit->terrace_area, 2) . ' sq ft' : '-' }}</p>
                             </div>
                             <div class="col-md-6 mb-2">
                                 <label class="text-muted small">{{ __('Duplex') }}</label>
@@ -168,7 +172,7 @@
         </div>
 
         <!-- Conditional Sections -->
-        <div class="col-md-6">
+        <div class="col-md-12">
             <!-- Client Details for Booked or Sold -->
             @if ($unit->status === 'Booked' || $unit->status === 'Sold')
                 <div class="card">
@@ -192,7 +196,9 @@
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="text-muted small">{{ __('Booking Date') }}</label>
-                                    <p class="mb-0">{{ $unit->booking->booking_date ? \Auth::user()->dateFormat($unit->booking->booking_date) : '-' }}</p>
+                                    <p class="mb-0">
+                                        {{ $unit->booking->booking_date ? \Auth::user()->dateFormat($unit->booking->booking_date) : '-' }}
+                                    </p>
                                 </div>
                             </div>
                         @elseif ($unit->status === 'Sold' && $contract)
@@ -200,7 +206,8 @@
                                 <div class="row">
                                     <div class="col-md-3 col-sm-6 mb-3">
                                         <p class="text-muted text-sm mb-0">{{ __('Full Name') }}</p>
-                                        <h6 class="mb-0">{{ $contract->customer->full_name ?? $contract->customer->name }}</h6>
+                                        <h6 class="mb-0">
+                                            {{ $contract->customer->full_name ?? $contract->customer->name }}</h6>
                                     </div>
                                     <div class="col-md-3 col-sm-6 mb-3">
                                         <p class="text-muted text-sm mb-0">{{ __('Customer Type') }}</p>
@@ -218,7 +225,8 @@
                                 <div class="row mt-3">
                                     <div class="col-md-3 col-sm-6 mb-3">
                                         <p class="text-muted text-sm mb-0">{{ __('Mobile Primary') }}</p>
-                                        <h6 class="mb-0">{{ $contract->customer->mobile_primary ?? $contract->customer->contact }}</h6>
+                                        <h6 class="mb-0">
+                                            {{ $contract->customer->mobile_primary ?? $contract->customer->contact }}</h6>
                                     </div>
                                     <div class="col-md-3 col-sm-6 mb-3">
                                         <p class="text-muted text-sm mb-0">{{ __('Mobile Secondary') }}</p>
@@ -246,7 +254,9 @@
                                 <div class="row mt-3">
                                     <div class="col-md-6 mb-3">
                                         <p class="text-muted text-sm mb-0">{{ __('Agreement Date') }}</p>
-                                        <h6 class="mb-0">{{ $contract->agreement_date ? \Auth::user()->dateFormat($contract->agreement_date) : '-' }}</h6>
+                                        <h6 class="mb-0">
+                                            {{ $contract->agreement_date ? \Auth::user()->dateFormat($contract->agreement_date) : '-' }}
+                                        </h6>
                                     </div>
                                 </div>
                             @else
@@ -271,67 +281,169 @@
                     <div class="card-body">
                         @if ($installments && $installments->count() > 0)
                             <div class="table-responsive">
-                                <table class="table table-sm table-bordered">
-                                    <thead class="bg-light">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
                                         <tr>
-                                            <th>{{ __('Installment') }}</th>
-                                            <th>{{ __('Type') }}</th>
-                                            <th>{{ __('Amount') }}</th>
-                                            <th>{{ __('Issue Date') }}</th>
-                                            <th>{{ __('Due Date') }}</th>
-                                            <th>{{ __('Status') }}</th>
-                                            <th>{{ __('Action') }}</th>
+                                            <th class="text-center" width="5%">{{ __('S No.') }}</th>
+                                            <th>{{ __('Narration') }}</th>
+                                            <th class="text-center">{{ __('Due Date') }}</th>
+                                            <th class="text-end">{{ __('Due Amount') }}</th>
+                                            <th class="text-center">{{ __('Paid Date') }}</th>
+                                            <th class="text-end">{{ __('Paid Amount') }}</th>
+                                            <th class="text-center">{{ __('Receipt No') }}</th>
+                                            <th class="text-end">{{ __('Balance') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach ($installments as $installment)
-                                            <tr>
-                                                <td>{{ $installment->installment_number }}</td>
-                                                <td>
-                                                    @if ($installment->installment_type == 'down_payment')
-                                                        <span class="badge bg-info">{{ __('Down Payment') }}</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">{{ __('Installment') }}</span>
-                                                    @endif
-                                                </td>
-                                                <td class="text-success fw-bold">
-                                                    {{ \Auth::user()->priceFormat($installment->amount) }}
-                                                </td>
-                                                <td>{{ \Auth::user()->dateFormat($installment->issue_date) }}</td>
-                                                <td>{{ \Auth::user()->dateFormat($installment->due_date) }}</td>
-                                                <td>
-                                                    @if ($installment->status == 'paid')
-                                                        <span class="badge bg-success">{{ __('Paid') }}</span>
-                                                    @elseif($installment->status == 'generated')
-                                                        <span class="badge bg-info">{{ __('Invoice Generated') }}</span>
-                                                    @elseif($installment->status == 'overdue')
-                                                        <span class="badge bg-danger">{{ __('Overdue') }}</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">{{ $installment->status }}</span>
-                                                    @endif
-                                                </td>
-                                                <td class="text-end">
-                                                    @if ($installment->invoice_id)
-                                                        <a href="{{ route('invoice.show', \Illuminate\Support\Facades\Crypt::encrypt($installment->invoice_id)) }}"
-                                                            class="btn btn-sm btn-info"
-                                                            target="_blank">
-                                                            <i class="ti ti-eye"></i>
-                                                        </a>
-                                                    @elseif($installment->status != 'paid')
-                                                        <a href="{{ route('invoice.create', ['cid' => $contract->customer_id ?? 0, 'contract_id' => $contract->id, 'installment_id' => $installment->id]) }}"
-                                                            class="btn btn-sm btn-primary">
-                                                            <i class="ti ti-plus"></i>
-                                                        </a>
-                                                    @endif
-                                                </td>
-                                            </tr>
+                                            @php
+                                                // Get payments for this installment
+                                                $payments = $installment->invoice
+                                                    ? $installment->invoice->payments->sortBy('date')
+                                                    : collect();
+                                                $totalPaidAmount = $payments->sum('amount');
+                                                $installmentBalance = $installment->amount - $totalPaidAmount;
+                                                $paymentCount = $payments->count();
+                                            @endphp
+
+                                            @if ($paymentCount > 0)
+                                                {{-- First row with installment details and first payment --}}
+                                                @php
+                                                    $firstPayment = $payments->first();
+                                                    $runningBalance = $installment->amount - $firstPayment->amount;
+                                                @endphp
+                                                <tr>
+                                                    <td class="text-center"
+                                                        @if ($paymentCount > 1) rowspan="{{ $paymentCount }}" @endif>
+                                                        {{ $installment->installment_number }}</td>
+                                                    <td
+                                                        @if ($paymentCount > 1) rowspan="{{ $paymentCount }}" @endif>
+                                                        @if ($installment->installment_type == 'down_payment')
+                                                            {{ __('Booking Charges') }}
+                                                        @else
+                                                            {{ __('Installment') }}
+                                                            {{ $installment->installment_number - 1 }}
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center"
+                                                        @if ($paymentCount > 1) rowspan="{{ $paymentCount }}" @endif>
+                                                        @if ($installment->due_date)
+                                                            @if ($installment->status != 'paid' && $installment->due_date < now())
+                                                                <span
+                                                                    class="text-danger">{{ \Auth::user()->dateFormat($installment->due_date) }}</span>
+                                                            @else
+                                                                {{ \Auth::user()->dateFormat($installment->due_date) }}
+                                                            @endif
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-end"
+                                                        @if ($paymentCount > 1) rowspan="{{ $paymentCount }}" @endif>
+                                                        {{ \Auth::user()->priceFormat($installment->amount) }}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        {{ \Auth::user()->dateFormat($firstPayment->date) }}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <span
+                                                            class="text-success">{{ \Auth::user()->priceFormat($firstPayment->amount) }}</span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        {{ $firstPayment->reference ?? '-' }}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        @if ($runningBalance > 0)
+                                                            <strong
+                                                                class="text-danger">{{ \Auth::user()->priceFormat($runningBalance) }}</strong>
+                                                        @else
+                                                            <strong
+                                                                class="text-success">{{ \Auth::user()->priceFormat(0) }}</strong>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+
+                                                {{-- Additional rows for remaining payments --}}
+                                                @foreach ($payments->skip(1) as $payment)
+                                                    @php $runningBalance -= $payment->amount; @endphp
+                                                    <tr>
+                                                        <td class="text-center">
+                                                            {{ \Auth::user()->dateFormat($payment->date) }}
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <span
+                                                                class="text-success">{{ \Auth::user()->priceFormat($payment->amount) }}</span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            {{ $payment->reference ?? '-' }}
+                                                        </td>
+                                                        <td class="text-end">
+                                                            @if ($runningBalance > 0)
+                                                                <strong
+                                                                    class="text-danger">{{ \Auth::user()->priceFormat($runningBalance) }}</strong>
+                                                            @else
+                                                                <strong
+                                                                    class="text-success">{{ \Auth::user()->priceFormat(0) }}</strong>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            @else
+                                                {{-- No payments - show single row --}}
+                                                <tr>
+                                                    <td class="text-center">{{ $installment->installment_number }}</td>
+                                                    <td>
+                                                        @if ($installment->installment_type == 'down_payment')
+                                                            {{ __('Booking Charges') }}
+                                                        @else
+                                                            {{ __('Installment') }}
+                                                            {{ $installment->installment_number - 1 }}
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if ($installment->due_date)
+                                                            @if ($installment->status != 'paid' && $installment->due_date < now())
+                                                                <span
+                                                                    class="text-danger">{{ \Auth::user()->dateFormat($installment->due_date) }}</span>
+                                                            @else
+                                                                {{ \Auth::user()->dateFormat($installment->due_date) }}
+                                                            @endif
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($installment->amount) }}</td>
+                                                    <td class="text-center">-</td>
+                                                    <td class="text-end">-</td>
+                                                    <td class="text-center">-</td>
+                                                    <td class="text-end">
+                                                        <strong
+                                                            class="text-danger">{{ \Auth::user()->priceFormat($installment->amount) }}</strong>
+                                                    </td>
+                                                </tr>
+                                            @endif
                                         @endforeach
-                                        <tr class="table-primary">
-                                            <td colspan="2" class="text-end fw-bold">{{ __('Total') }}</td>
-                                            <td class="text-success fw-bold">
-                                                {{ \Auth::user()->priceFormat($installments->sum('amount')) }}
-                                            </td>
-                                            <td colspan="4"></td>
+                                        {{-- Total Row --}}
+                                        @php
+                                            $totalDueAmount = $installments->sum('amount');
+                                            $totalPaidAmount = $installments->sum(function ($inst) {
+                                                return $inst->invoice ? $inst->invoice->payments->sum('amount') : 0;
+                                            });
+                                            $totalBalance = $totalDueAmount - $totalPaidAmount;
+                                        @endphp
+                                        <tr class="table-secondary fw-bold">
+                                            <td class="text-center"></td>
+                                            <td>{{ __('Total') }}</td>
+                                            <td class="text-center"></td>
+                                            <td class="text-end">{{ \Auth::user()->priceFormat($totalDueAmount) }}</td>
+                                            <td class="text-center"></td>
+                                            <td class="text-end text-success">
+                                                {{ \Auth::user()->priceFormat($totalPaidAmount) }}</td>
+                                            <td class="text-center"></td>
+                                            <td
+                                                class="text-end {{ $totalBalance > 0 ? 'text-danger' : 'text-success' }}">
+                                                {{ \Auth::user()->priceFormat($totalBalance) }}</td>
                                         </tr>
                                     </tbody>
                                 </table>

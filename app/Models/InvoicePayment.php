@@ -42,4 +42,20 @@ class InvoicePayment extends Model
     {
         return $this->hasOne(CheckList::class, 'invoice_payment_id');
     }
+
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class, 'invoice_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    public function voucher()
+    {
+        return $this->belongsTo(journalEntry::class, 'voucher_id');
+    }
+    
 }

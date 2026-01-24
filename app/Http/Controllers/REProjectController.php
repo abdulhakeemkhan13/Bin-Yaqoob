@@ -657,7 +657,7 @@ class REProjectController extends Controller
     public function showUnit($projectId, $unitId)
     {
         $project = ReProject::findOrFail($projectId);
-        $unit = ReUnit::with(['floor', 'booking.customer', 'contract.installments', 'contract.customer'])->findOrFail($unitId);
+        $unit = ReUnit::with(['floor', 'booking.customer', 'contract.installments.invoice.payments', 'contract.customer'])->findOrFail($unitId);
 
         \Log::info('Unit Details Debug', [
             'unit_id' => $unitId,

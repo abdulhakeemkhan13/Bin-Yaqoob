@@ -831,6 +831,7 @@ class InvoiceController extends Controller
 
             $incomeAccountId = null;
             $receivableAccountId = null;
+            $invoice = Invoice::find($id);
             
             if ($invoice->re_project_id) {
                 $project = \App\Models\REProject::find($invoice->re_project_id);
@@ -1040,6 +1041,10 @@ public function createPayment(Request $request, $invoice_id)
         //     ]);
         // }
 
+        // Refresh invoice to include the new payment in getDue calculation
+        $invoice->refresh();
+        $invoice->load('payments');
+        
         $due = $invoice->getDue();
         $total = $invoice->getTotal();
         if ($invoice->status == 0) {
@@ -1080,6 +1085,15 @@ public function createPayment(Request $request, $invoice_id)
         // Create receipt voucher (CRV for cash, BRV for bank)
         $bankAccount = BankAccount::find($request->account_id);
 
+        // Get project's receivable account if project exists
+        $receivableAccountId = null;
+        if ($invoice->re_project_id) {
+            $project = \App\Models\ReProject::find($invoice->re_project_id);
+            if ($project && $project->receivable_account_id) {
+                $receivableAccountId = $project->receivable_account_id;
+            }
+        }
+
         $voucherData = [
             'id' => $invoicePayment->id,
             'no' => $invoice->invoice_id,
@@ -1100,6 +1114,7 @@ public function createPayment(Request $request, $invoice_id)
             'tower_id' => $invoice->tower_id,
             'floor_id' => $invoice->floor_id,
             'unit_id' => $invoice->unit_id,
+            'receivable_account_id' => $receivableAccountId,
         ];
 
         // Use CRV for cash accounts, BRV for bank accounts

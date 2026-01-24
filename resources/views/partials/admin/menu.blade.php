@@ -829,6 +829,53 @@
                             <a class="dash-link"
                                 href="{{ route('re-payment-plans.index') }}">{{ __('Payment Plans') }}</a>
                         </li>
+                        <li
+                            class="dash-item dash-hasmenu {{ Request::segment(1) == 're-reports' ? 'active dash-trigger' : '' }}">
+                            <a class="dash-link" href="#">{{ __('Reports') }}<span class="dash-arrow"><i
+                                        data-feather="chevron-right"></i></span></a>
+                            <ul class="dash-submenu">
+                                <li
+                                    class="dash-item {{ Request::route()->getName() == 're-reports.availability' ? 'active' : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('re-reports.availability') }}">{{ __('Availability Report') }}</a>
+                                </li>
+                                <li
+                                    class="dash-item {{ Request::route()->getName() == 're-reports.booking-summary' ? 'active' : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('re-reports.booking-summary') }}">{{ __('Booking Summary') }}</a>
+                                </li>
+                                <li
+                                    class="dash-item {{ Request::route()->getName() == 're-reports.unit-status' ? 'active' : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('re-reports.unit-status') }}">{{ __('Unit Status Report') }}</a>
+                                </li>
+                                <li
+                                    class="dash-item {{ Request::route()->getName() == 're-reports.unit-booking' ? 'active' : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('re-reports.unit-booking') }}">{{ __('Unit Booking Report') }}</a>
+                                </li>
+                                <li
+                                    class="dash-item {{ Request::route()->getName() == 're-reports.price-list' ? 'active' : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('re-reports.price-list') }}">{{ __('Unit Price List') }}</a>
+                                </li>
+                                <li
+                                    class="dash-item {{ Request::route()->getName() == 're-reports.installment-plans' ? 'active' : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('re-reports.installment-plans') }}">{{ __('Installment Plans') }}</a>
+                                </li>
+                                <li
+                                    class="dash-item {{ Request::route()->getName() == 're-reports.installment-overdue' ? 'active' : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('re-reports.installment-overdue') }}">{{ __('Due & Overdue Report') }}</a>
+                                </li>
+                                <li
+                                    class="dash-item {{ Request::route()->getName() == 're-reports.installment-upcoming' ? 'active' : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('re-reports.installment-upcoming') }}">{{ __('Upcoming Due Report') }}</a>
+                                </li>
+                            </ul>
+                        </li>
                     </ul>
                 </li>
                 <!--------------------- End Real Estate Management ----------------------------------->
@@ -1504,15 +1551,15 @@
                                             </ul>
                                         </li>
                                         <!-- <li
-                                    class="dash-item {{ Request::route()->getName() == 'journal-entry.edit' ||
-                                    Request::route()->getName() == 'journal-entry.create' ||
-                                    Request::route()->getName() == 'journal-entry.index' ||
-                                    Request::route()->getName() == 'journal-entry.show'
-                                        ? ' active'
-                                        : '' }}">
-                                    <a class="dash-link"
-                                        href="{{ route('journal-entry.index') }}">{{ __('Journal Account') }}</a>
-                                </li> -->
+                                class="dash-item {{ Request::route()->getName() == 'journal-entry.edit' ||
+                                Request::route()->getName() == 'journal-entry.create' ||
+                                Request::route()->getName() == 'journal-entry.index' ||
+                                Request::route()->getName() == 'journal-entry.show'
+                                    ? ' active'
+                                    : '' }}">
+                                <a class="dash-link"
+                                    href="{{ route('journal-entry.index') }}">{{ __('Journal Account') }}</a>
+                            </li> -->
                                         <li
                                             class="dash-item {{ Request::route()->getName() == 'report.ledger' ? ' active' : '' }}">
                                             <a class="dash-link"
@@ -1624,12 +1671,12 @@
                                     data-feather="chevron-right"></i></span></a>
                         <ul
                             class="dash-submenu {{ Request::segment(1) == 'stages' || Request::segment(1) == 'labels' || Request::segment(1) == 'sources' || Request::segment(1) == 'lead_stages' || Request::segment(1) == 'leads' || Request::segment(1) == 'form_builder' || Request::segment(1) == 'form_response' || Request::segment(1) == 'deals' || Request::segment(1) == 'pipelines' ? 'show' : '' }}">
-                            @can('manage lead')
+                            {{-- @can('manage lead')
                                 <li
                                     class="dash-item {{ Request::route()->getName() == 'leads.list' || Request::route()->getName() == 'leads.index' || Request::route()->getName() == 'leads.show' ? ' active' : '' }}">
                                     <a class="dash-link" href="{{ route('leads.index') }}">{{ __('Leads') }}</a>
                                 </li>
-                            @endcan
+                            @endcan --}}
                             @can('manage deal')
                                 <li
                                     class="dash-item {{ Request::route()->getName() == 'deals.list' || Request::route()->getName() == 'deals.index' || Request::route()->getName() == 'deals.show' ? ' active' : '' }}">

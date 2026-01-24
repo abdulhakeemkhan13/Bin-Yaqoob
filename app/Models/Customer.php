@@ -309,6 +309,11 @@ class Customer extends Authenticatable
         return $this->hasMany(CustomerDocument::class, 'customer_id');
     }
 
+    public function contracts()
+    {
+        return $this->hasMany(Contract::class, 'customer_id');
+    }
+
     public static function customer_id($customer_name)
     {
         $customer = DB::table('customers')

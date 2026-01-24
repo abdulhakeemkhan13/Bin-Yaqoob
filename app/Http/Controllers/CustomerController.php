@@ -75,7 +75,7 @@ class CustomerController extends Controller
 
             $rules = [
                 'name' => 'required',
-                'contact' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/',
+                'mobile_primary' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/',
                 'email' => [
                     'required',
                     Rule::unique('customers')->where(function ($query) {
@@ -104,11 +104,25 @@ class CustomerController extends Controller
                 $customer                  = new Customer();
                 $customer->customer_id     = $this->customerNumber();
                 $customer->name            = $request->name;
-                $customer->contact         = $request->contact;
+                $customer->contact         = $request->mobile_primary; // Use mobile_primary as contact
                 $customer->email           = $request->email;
-                $customer->tax_number      =$request->tax_number;
+                $customer->tax_number      = $request->tax_number;
                 $customer->created_by      = \Auth::user()->creatorId();
-                $customer->owned_by      = \Auth::user()->ownedId();
+                $customer->owned_by        = \Auth::user()->ownedId();
+                
+                // Additional fields
+                $customer->father_or_spouse_name = $request->father_or_spouse_name;
+                $customer->cnic_number     = $request->cnic_number;
+                $customer->mobile_primary  = $request->mobile_primary;
+                $customer->mobile_secondary = $request->mobile_secondary;
+                $customer->nationality     = $request->nationality;
+                $customer->date_of_birth   = $request->date_of_birth;
+                $customer->current_address = $request->current_address;
+                $customer->permanent_address = $request->permanent_address;
+                $customer->city            = $request->city;
+                $customer->country         = $request->country;
+                
+                // Billing address
                 $customer->billing_name    = $request->billing_name;
                 $customer->billing_country = $request->billing_country;
                 $customer->billing_state   = $request->billing_state;
@@ -117,6 +131,7 @@ class CustomerController extends Controller
                 $customer->billing_zip     = $request->billing_zip;
                 $customer->billing_address = $request->billing_address;
 
+                // Shipping address
                 $customer->shipping_name    = $request->shipping_name;
                 $customer->shipping_country = $request->shipping_country;
                 $customer->shipping_state   = $request->shipping_state;
@@ -126,7 +141,31 @@ class CustomerController extends Controller
                 $customer->shipping_address = $request->shipping_address;
 
                 $customer->lang = !empty($default_language) ? $default_language->value : '';
+                $customer->is_active = 1;
+                $customer->save();
 
+                // Create client User record
+                $clientUser = User::where('email', $request->email)->where('type', 'client')->first();
+                if (!$clientUser) {
+                    $clientUser = new User();
+                    $clientUser->name = $request->name;
+                    $clientUser->email = $request->email;
+                    $clientUser->password = \Hash::make('password123'); // Default password
+                    $clientUser->type = 'client';
+                    $clientUser->lang = !empty($default_language) ? $default_language->value : 'en';
+                    $clientUser->created_by = \Auth::user()->creatorId();
+                    $clientUser->owned_by = \Auth::user()->ownedId();
+                    $clientUser->save();
+
+                    // Assign client role
+                    $role = \Spatie\Permission\Models\Role::where('name', 'client')->first();
+                    if ($role) {
+                        $clientUser->assignRole($role);
+                    }
+                }
+                
+                // Link client to customer
+                $customer->client_id = $clientUser->id;
                 $customer->save();
 
                 CustomField::saveData($customer, $request->customField);
@@ -276,7 +315,9 @@ class CustomerController extends Controller
             return redirect()->back()->with('error', __('Customer Not Found.'));
         }
         $id       = \Crypt::decrypt($ids);
-        $customer = Customer::find($id);
+        $customer = Customer::with(['contracts' => function($query) {
+            $query->with(['re_project', 'tower', 'floor', 'unit', 'installments.invoice.payments', 'types']);
+        }])->find($id);
 
         return view('customer.show', compact('customer'));
     }
@@ -309,7 +350,7 @@ class CustomerController extends Controller
 
             $rules = [
                 'name' => 'required',
-                'contact' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/',
+                'mobile_primary' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/',
             ];
 
 
@@ -322,10 +363,24 @@ class CustomerController extends Controller
             }
 
             $customer->name             = $request->name;
-            $customer->contact          = $request->contact;
-            $customer->email           = $request->email;
-            $customer->tax_number      =$request->tax_number;
+            $customer->contact          = $request->mobile_primary; // Use mobile_primary as contact
+            $customer->email            = $request->email;
+            $customer->tax_number       = $request->tax_number;
             $customer->created_by       = \Auth::user()->creatorId();
+            
+            // Additional fields
+            $customer->father_or_spouse_name = $request->father_or_spouse_name;
+            $customer->cnic_number      = $request->cnic_number;
+            $customer->mobile_primary   = $request->mobile_primary;
+            $customer->mobile_secondary = $request->mobile_secondary;
+            $customer->nationality      = $request->nationality;
+            $customer->date_of_birth    = $request->date_of_birth;
+            $customer->current_address  = $request->current_address;
+            $customer->permanent_address = $request->permanent_address;
+            $customer->city             = $request->city;
+            $customer->country          = $request->country;
+            
+            // Billing address
             $customer->billing_name     = $request->billing_name;
             $customer->billing_country  = $request->billing_country;
             $customer->billing_state    = $request->billing_state;
@@ -333,6 +388,8 @@ class CustomerController extends Controller
             $customer->billing_phone    = $request->billing_phone;
             $customer->billing_zip      = $request->billing_zip;
             $customer->billing_address  = $request->billing_address;
+            
+            // Shipping address
             $customer->shipping_name    = $request->shipping_name;
             $customer->shipping_country = $request->shipping_country;
             $customer->shipping_state   = $request->shipping_state;
@@ -374,6 +431,26 @@ class CustomerController extends Controller
         {
             if($customer->created_by == \Auth::user()->creatorId())
             {
+                // Check if customer has any contracts
+                $hasContracts = \App\Models\Contract::where('customer_id', $customer->id)->exists();
+                if ($hasContracts) {
+                    return redirect()->back()->with('error', __('Cannot delete customer. Customer has associated contracts.'));
+                }
+                
+                // Check if customer has any invoices
+                $hasInvoices = \App\Models\Invoice::where('customer_id', $customer->id)->exists();
+                if ($hasInvoices) {
+                    return redirect()->back()->with('error', __('Cannot delete customer. Customer has associated invoices.'));
+                }
+                
+                // Delete linked client User if exists
+                if ($customer->client_id) {
+                    $clientUser = User::find($customer->client_id);
+                    if ($clientUser && $clientUser->type === 'client') {
+                        $clientUser->delete();
+                    }
+                }
+                
                 //log
                 Utility::makeActivityLog(\Auth::user()->id,'Customer',$customer->id,'Delete Customer',$customer->name);
                 $customer->delete();

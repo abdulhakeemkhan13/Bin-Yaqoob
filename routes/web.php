@@ -1968,6 +1968,18 @@ Route::group(['middleware' => ['verified']], function () {
         Route::delete('/{id}', [\App\Http\Controllers\RePaymentPlanController::class, 'destroy'])->name('re-payment-plans.destroy');
         Route::get('/active', [\App\Http\Controllers\RePaymentPlanController::class, 'getActivePlans'])->name('re-payment-plans.active');
     });
+
+    // Real Estate Reports Module
+    Route::prefix('re-reports')->middleware(['auth', 'XSS', 'revalidate'])->group(function () {
+        Route::get('/availability', [\App\Http\Controllers\ReReportController::class, 'availability'])->name('re-reports.availability');
+        Route::get('/booking-summary', [\App\Http\Controllers\ReReportController::class, 'bookingSummary'])->name('re-reports.booking-summary');
+        Route::get('/unit-status', [\App\Http\Controllers\ReReportController::class, 'unitStatus'])->name('re-reports.unit-status');
+        Route::get('/unit-booking', [\App\Http\Controllers\ReReportController::class, 'unitBooking'])->name('re-reports.unit-booking');
+        Route::get('/price-list', [\App\Http\Controllers\ReReportController::class, 'priceList'])->name('re-reports.price-list');
+        Route::get('/installment-plans', [\App\Http\Controllers\ReReportController::class, 'installmentPlans'])->name('re-reports.installment-plans');
+        Route::get('/installment-overdue', [\App\Http\Controllers\ReReportController::class, 'installmentOverdue'])->name('re-reports.installment-overdue');
+        Route::get('/installment-upcoming', [\App\Http\Controllers\ReReportController::class, 'installmentUpcoming'])->name('re-reports.installment-upcoming');
+    });
 });
 
 
