@@ -15,7 +15,7 @@ class ReReportController extends Controller
 {
     public function availability(Request $request)
     {
-        $projects = ReProject::with(['floors.units' => function($query) {
+        $projects = ReProject::with(['towers.floors.units' => function($query) {
             $query->where('status', 'Available');
         }])->where('status', 'Active')->get();
 

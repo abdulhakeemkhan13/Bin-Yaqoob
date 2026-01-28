@@ -353,9 +353,9 @@
                     <a href="#useradd-2" class="list-group-item list-group-item-action border-0">{{ __('Attachment') }}
                         <div class="float-end"><i class="ti ti-chevron-right"></i></div>
                     </a>
-                    <a href="#useradd-3" class="list-group-item list-group-item-action border-0">{{ __('Comment') }}
+                    {{-- <a href="#useradd-3" class="list-group-item list-group-item-action border-0">{{ __('Comment') }}
                         <div class="float-end"><i class="ti ti-chevron-right"></i></div>
-                    </a>
+                    </a> --}}
                     <a href="#useradd-4" class="list-group-item list-group-item-action border-0">{{ __('Notes') }}
                         <div class="float-end"><i class="ti ti-chevron-right"></i></div>
                     </a>
@@ -367,7 +367,7 @@
                 <div class="row">
                     <div class="col-xl-12">
                         <div class="row">
-                            <div class="col-lg-4 col-6">
+                            <div class="col-lg-6 col-6">
                                 <div class="card">
                                     <div class="card-body" style="min-height: 205px;">
                                         <div class="theme-avtar bg-primary">
@@ -379,7 +379,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-4 col-6">
+                            {{-- <div class="col-lg-4 col-6">
                                 <div class="card">
                                     <div class="card-body" style="min-height: 205px;">
                                         <div class="theme-avtar bg-info">
@@ -389,8 +389,8 @@
                                         <h3 class="mb-0">{{ count($contract->comment) }}</h3>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-lg-4 col-6">
+                            </div> --}}
+                            <div class="col-lg-6 col-6">
                                 <div class="card">
                                     <div class="card-body" style="min-height: 205px;">
                                         <div class="theme-avtar bg-warning">
@@ -784,7 +784,7 @@
                 </div>
             </div>
 
-            <div id ="useradd-3">
+            {{-- <div id ="useradd-3">
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">{{ __('Comments') }}</h5>
@@ -858,7 +858,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> --}}
 
             <div id ="useradd-4">
                 <div class="card">

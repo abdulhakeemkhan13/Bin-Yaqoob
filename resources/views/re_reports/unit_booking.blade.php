@@ -1,4 +1,4 @@
-@extends('re_reports.layout', ['title' => __('Unit Booking Report (Multiple Units)')])
+@extends('re_reports.layout', ['title' => __('Unit Booking Report ')])
 
 @section('report-table')
     <table class="table table-bordered table-striped datatable">
@@ -8,7 +8,7 @@
                 <th>{{ __('Booking #') }}</th>
                 <th>{{ __('Date') }}</th>
                 <th>{{ __('Project') }}</th>
-                <th>{{ __('Tower') }}</th>
+                <th>{{ __('Tower / Floor') }}</th>
                 <th>{{ __('Unit #') }}</th>
                 <th>{{ __('Customer Name') }}</th>
                 <th>{{ __('Phone #') }}</th>
@@ -24,8 +24,8 @@
                     <td>{{ $index + 1 }}</td>
                     <td>{{ $booking->booking_number }}</td>
                     <td>{{ $booking->booking_date->format('d-m-Y') }}</td>
-                    <td>{{ $booking->unit->floor->project->project_name ?? '-' }}</td>
-                    <td>{{ $booking->unit->floor->tower->tower_name ?? '-' }}</td>
+                    <td>{{ $booking->unit->floor->project->name ?? '-' }}</td>
+                    <td>{{ $booking->unit->floor->tower->tower_name ?? '-' }} / {{ $booking->unit->floor->floor_name ?? '-' }}</td>
                     <td>{{ $booking->unit->unit_number ?? '-' }}</td>
                     <td>{{ $booking->customer_name }}</td>
                     <td>{{ $booking->customer_phone }}</td>

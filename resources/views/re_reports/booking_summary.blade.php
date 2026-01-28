@@ -40,6 +40,7 @@
                 <th>{{ __('Date') }}</th>
                 <th>{{ __('Customer') }}</th>
                 <th>{{ __('Project') }}</th>
+                <th>{{ __('Tower') }} - {{ __('Floor') }}</th>
                 <th>{{ __('Unit') }}</th>
                 <th>{{ __('Total Price') }}</th>
                 <th>{{ __('Net Amount') }}</th>
@@ -52,7 +53,8 @@
                     <td>{{ $booking->booking_number }}</td>
                     <td>{{ $booking->booking_date->format('d-m-Y') }}</td>
                     <td>{{ $booking->customer_name }}</td>
-                    <td>{{ $booking->unit->floor->project->project_name ?? '-' }}</td>
+                    <td>{{ $booking->unit->floor->project->name ?? '-' }}</td>
+                    <td>{{ $booking->unit->floor->tower->tower_name ?? '-' }} - {{ $booking->unit->floor->floor_name ?? '-' }}</td>
                     <td>{{ $booking->unit->unit_number ?? '-' }}</td>
                     <td>{{ \Auth::user()->priceFormat($booking->total_price) }}</td>
                     <td>{{ \Auth::user()->priceFormat($booking->net_amount) }}</td>

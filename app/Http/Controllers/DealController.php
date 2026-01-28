@@ -40,6 +40,7 @@ use App\Models\ReProject;
 use App\Models\ReTower;
 use App\Models\ReFloor;
 use App\Models\ReUnit;
+use App\Models\ReBooking;
 use Auth;
 
 class DealController extends Controller
@@ -298,12 +299,35 @@ class DealController extends Controller
                 // $deal->date = date('Y-m-d');
                 $deal->save();
 
-                // Reserve the unit if selected
+                // Create ReBooking entry with Draft status and update unit status
                 if ($deal->re_unit_id) {
-                    $unit = \App\Models\ReUnit::find($deal->re_unit_id);
+                    $unit = ReUnit::find($deal->re_unit_id);
                     if ($unit && $unit->status == 'Available') {
-                        $unit->status = 'Reserved';
+                        // Update unit status to Booked
+                        $unit->status = 'Booked';
                         $unit->save();
+
+                        // Create ReBooking entry with Draft status
+                        ReBooking::create([
+                            'booking_number' => ReBooking::generateBookingNumber(),
+                            'deal_id' => $deal->id,
+                            're_unit_id' => $deal->re_unit_id,
+                            're_payment_plan_id' => null, // Will be set when deal is converted to contract
+                            'customer_id' => null,
+                            'customer_name' => $deal->name,
+                            'customer_phone' => $deal->phone,
+                            'customer_cnic' => null,
+                            'customer_email' => $deal->email,
+                            'booking_date' => now()->toDateString(),
+                            'total_price' => $unit->price ?? $deal->price,
+                            'down_payment' => 0,
+                            'discount' => $deal->discount ?? 0,
+                            'extra_charges' => 0,
+                            'net_amount' => ($unit->price ?? $deal->price) - ($deal->discount ?? 0),
+                            'status' => 'Draft',
+                            'notes' => 'Created from deal',
+                            'created_by' => $usr->id,
+                        ]);
                     }
                 }
 
@@ -671,22 +695,50 @@ class DealController extends Controller
                 $oldUnitId = $deal->re_unit_id;
                 $newUnitId = $request->re_unit_id;
                 
-                // If unit changed, update statuses
+                // If unit changed, update statuses and ReBooking entries
                 if ($oldUnitId != $newUnitId) {
-                    // Revert old unit to Available (if it was reserved by this deal)
+                    // Revert old unit to Available and delete associated Draft booking
                     if ($oldUnitId) {
-                        $oldUnit = \App\Models\ReUnit::find($oldUnitId);
-                        if ($oldUnit && $oldUnit->status == 'Reserved') {
+                        $oldUnit = ReUnit::find($oldUnitId);
+                        if ($oldUnit && in_array($oldUnit->status, ['Reserved', 'Booked'])) {
                             $oldUnit->status = 'Available';
                             $oldUnit->save();
+                            
+                            // Delete Draft ReBooking for old unit
+                            ReBooking::where('deal_id', $deal->id)
+                                ->where('re_unit_id', $oldUnitId)
+                                ->where('status', 'Draft')
+                                ->delete();
                         }
                     }
-                    // Mark new unit as Reserved
+                    // Mark new unit as Booked and create ReBooking entry
                     if ($newUnitId) {
-                        $newUnit = \App\Models\ReUnit::find($newUnitId);
+                        $newUnit = ReUnit::find($newUnitId);
                         if ($newUnit && $newUnit->status == 'Available') {
-                            $newUnit->status = 'Reserved';
+                            $newUnit->status = 'Booked';
                             $newUnit->save();
+                            
+                            // Create ReBooking entry with Draft status
+                            ReBooking::create([
+                                'booking_number' => ReBooking::generateBookingNumber(),
+                                'deal_id' => $deal->id,
+                                're_unit_id' => $newUnitId,
+                                're_payment_plan_id' => null,
+                                'customer_id' => null,
+                                'customer_name' => $deal->name,
+                                'customer_phone' => $deal->phone,
+                                'customer_cnic' => null,
+                                'customer_email' => $deal->email,
+                                'booking_date' => now()->toDateString(),
+                                'total_price' => $newUnit->price ?? $deal->price,
+                                'down_payment' => 0,
+                                'discount' => $deal->discount ?? 0,
+                                'extra_charges' => 0,
+                                'net_amount' => ($newUnit->price ?? $deal->price) - ($deal->discount ?? 0),
+                                'status' => 'Draft',
+                                'notes' => 'Created from deal',
+                                'created_by' => \Auth::user()->id,
+                            ]);
                         }
                     }
                 }
@@ -2590,6 +2642,14 @@ class DealController extends Controller
                 return response()->json(['error' => $messages->first()], 422);
             }
 
+            // Check if email is already used by a non-client user
+            $existingUser = User::where('email', $request->email)
+                ->where('type', '!=', 'client')
+                ->first();
+            if ($existingUser) {
+                return response()->json(['error' => __('Email is already taken by another user. Please use a different email.')], 422);
+            }
+
             $deal = Deal::findOrFail($id);
             $user = \Auth::user();
             $creatorId = $user->creatorId();
@@ -2598,7 +2658,7 @@ class DealController extends Controller
             try {
                 DB::beginTransaction();
 
-                // 1. Handle Primary Customer
+                // 1. Handle Primary Customer (Create Customer First)
                 $customer = Customer::where('cnic_number', $request->cnic_number)
                     ->where('created_by', $creatorId)
                     ->first();
@@ -2627,7 +2687,7 @@ class DealController extends Controller
                 $customer->is_active = 1;
                 $customer->save();
 
-                // 2. Handle User (Client) linkage
+                // 2. Handle User (Client) - Create or Find User and Link to Customer
                 $clientUser = User::where('email', $request->email)->where('type', 'client')->first();
                 if (!$clientUser) {
                     $clientUser = new User();
@@ -2638,11 +2698,20 @@ class DealController extends Controller
                     $clientUser->lang = 'en';
                     $clientUser->created_by = $creatorId;
                     $clientUser->owned_by = $ownedId;
+                    $clientUser->customer_id = $customer->id; // Link user to customer
                     $clientUser->save();
 
                     $role = \Spatie\Permission\Models\Role::where('name', 'client')->first();
                     if ($role) $clientUser->assignRole($role);
+                } else {
+                    // Update existing user's customer_id if not set
+                    if (!$clientUser->customer_id) {
+                        $clientUser->customer_id = $customer->id;
+                        $clientUser->save();
+                    }
                 }
+                
+                // Update customer with client_id (bidirectional link)
                 $customer->client_id = $clientUser->id;
                 $customer->save();
 
@@ -2756,6 +2825,24 @@ class DealController extends Controller
                 if ($unit) {
                     $unit->status = 'Sold';
                     $unit->save();
+                }
+
+                // Update ReBooking status from Draft to Active
+                $reBooking = ReBooking::where('deal_id', $deal->id)
+                    ->where('status', 'Draft')
+                    ->first();
+                if ($reBooking) {
+                    $reBooking->status = 'Active';
+                    $reBooking->re_payment_plan_id = $request->payment_plan_id;
+                    $reBooking->customer_id = $customer->id;
+                    $reBooking->customer_name = $customer->full_name;
+                    $reBooking->customer_phone = $customer->mobile_primary;
+                    $reBooking->customer_cnic = $customer->cnic_number;
+                    $reBooking->customer_email = $customer->email;
+                    $reBooking->total_price = $request->sale_price;
+                    $reBooking->down_payment = $request->down_payment_amount ?? 0;
+                    $reBooking->net_amount = $request->sale_price - ($reBooking->discount ?? 0);
+                    $reBooking->save();
                 }
 
                 // 8. Generate Installment Schedule

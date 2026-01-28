@@ -11,7 +11,7 @@
                     </option>
                     @foreach ($allProjects as $p)
                         <option value="{{ $p->id }}" {{ request('project_id') == $p->id ? 'selected' : '' }}>
-                            {{ $p->project_name }} {{ $p->status != 'Active' ? '(' . $p->status . ')' : '' }}</option>
+                            {{ $p->name }} {{ $p->status != 'Active' ? '(' . $p->status . ')' : '' }}</option>
                     @endforeach
                 </select>
             </div>
@@ -52,7 +52,7 @@
         <tbody>
             @foreach ($units as $unit)
                 <tr>
-                    <td>{{ $unit->floor->project->project_name ?? '-' }}</td>
+                    <td>{{ $unit->floor->project->name ?? '-' }}</td>
                     <td>{{ $unit->floor->tower->tower_name ?? '-' }}</td>
                     <td>{{ $unit->floor->floor_name ?? '-' }}</td>
                     <td>{{ $unit->unit_number }}</td>

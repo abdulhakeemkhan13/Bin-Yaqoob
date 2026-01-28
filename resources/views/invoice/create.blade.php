@@ -137,12 +137,46 @@
             }
         });
 
+        // Function to reset table fields to default values
+        function resetTableFields() {
+            // Remove all rows except the first one
+            $('[data-repeater-item]:not(:first)').remove();
+
+            // Reset first row fields
+            var firstRow = $('[data-repeater-item]').first();
+            firstRow.find('.item').val('').trigger('change.select2');
+            firstRow.find('.quantity').val('');
+            firstRow.find('.price').val('');
+            firstRow.find('.discount').val('');
+            firstRow.find('.pro_description').val('');
+            firstRow.find('.amount').html('0.00');
+            firstRow.find('.tax').val('');
+            firstRow.find('.taxes').html('');
+            firstRow.find('.itemTaxPrice').val('');
+            firstRow.find('.itemTaxRate').val('');
+
+            // Reset totals
+            $('.subTotal').html('0.00');
+            $('.totalTax').html('0.00');
+            $('.totalDiscount').html('0.00');
+            $('.totalAmount').html('0.00');
+
+            // Remove installment_id hidden field if exists
+            $('input[name="installment_id"]').remove();
+        }
+
         // Handle contract selection to auto-fill invoice items
-        $(document).on('change', '#contract_id', function() {
-            // Skip if this is an installment-based invoice pre-filled from URL
-            if ($('input[name="installment_id"]').length && $('input[name="installment_id"]').val()) {
+        $(document).on('change', '#contract_id', function(e) {
+            // Only skip if this page was loaded with a pre-filled installment AND this isn't a user change
+            // Check if original page load had installment
+            var isPrefilledPage = {{ isset($installment) && $installment ? 'true' : 'false' }};
+            var isFirstLoad = !$(this).data('user-changed');
+
+            if (isPrefilledPage && isFirstLoad) {
+                $(this).data('user-changed', true);
                 return;
             }
+            $(this).data('user-changed', true);
 
             var opt = $(this).find(':selected');
             var contractValue = parseFloat(opt.data('value')) || 0;
@@ -150,15 +184,23 @@
             var productId = opt.data('product');
             var pendingInstallment = opt.data('pending');
 
+            // Reset table when contract changes
+            resetTableFields();
+
+            // If no contract selected, just return after reset
+            if (!opt.val()) {
+                return;
+            }
+
             var firstRow = $('[data-repeater-item]').first();
 
             // Auto-select the unit's product if available
             if (productId) {
-                firstRow.find('.item').val(productId);
+                firstRow.find('.item').val(productId).trigger('change.select2');
             }
 
             // If there's a pending installment, use its data
-            if (opt.val() && pendingInstallment && pendingInstallment.id) {
+            if (pendingInstallment && pendingInstallment.id) {
                 // Set dates
                 $('input[name="issue_date"]').val(pendingInstallment.issue_date);
                 $('input[name="due_date"]').val(pendingInstallment.due_date);
@@ -168,22 +210,29 @@
                 firstRow.find('.quantity').val(1);
                 firstRow.find('.pro_description').val(pendingInstallment.description);
 
-                // Add hidden field for installment_id if not exists
-                if (!$('input[name="installment_id"]').length) {
-                    $('form').append('<input type="hidden" name="installment_id" value="' + pendingInstallment.id +
-                        '">');
-                } else {
-                    $('input[name="installment_id"]').val(pendingInstallment.id);
-                }
+                // Add hidden field for installment_id
+                $('input[name="installment_id"]').remove(); // Remove any existing
+                $('form').append('<input type="hidden" name="installment_id" value="' + pendingInstallment.id +
+                    '">');
 
                 // Trigger calculations
                 firstRow.find('.quantity').trigger('keyup');
-            } else if (opt.val() && contractValue > 0) {
+
+                // Update amount display
+                firstRow.find('.amount').html(parseFloat(pendingInstallment.amount).toFixed(2));
+                $('.subTotal').html(parseFloat(pendingInstallment.amount).toFixed(2));
+                $('.totalAmount').html(parseFloat(pendingInstallment.amount).toFixed(2));
+            } else if (contractValue > 0) {
                 // Full payment mode
                 firstRow.find('.price').val(contractValue);
                 firstRow.find('.quantity').val(1);
                 firstRow.find('.pro_description').val('{{ __('Contract Full Payment') }}');
                 firstRow.find('.quantity').trigger('keyup');
+
+                // Update amount display
+                firstRow.find('.amount').html(contractValue.toFixed(2));
+                $('.subTotal').html(contractValue.toFixed(2));
+                $('.totalAmount').html(contractValue.toFixed(2));
             }
         });
 
@@ -193,6 +242,12 @@
             $('#customer_detail').removeClass('d-block');
             $('#customer_detail').addClass('d-none');
             $('#contract-box').addClass('d-none');
+
+            // Reset contract dropdown
+            $('#contract_id').html('<option value="">{{ __('-- Select Contract --') }}</option>');
+
+            // Reset table fields when customer is removed
+            resetTableFields();
         })
 
         $(document).on('change', '.item', function() {

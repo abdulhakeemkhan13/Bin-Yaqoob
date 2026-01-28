@@ -15,6 +15,7 @@ class ReBooking extends Model
 
     protected $fillable = [
         'booking_number',
+        'deal_id',
         're_unit_id',
         're_payment_plan_id',
         'customer_id',
@@ -42,7 +43,7 @@ class ReBooking extends Model
         'net_amount' => 'decimal:2',
     ];
 
-    public static $statuses = ['Active', 'Cancelled', 'Completed', 'Transferred'];
+    public static $statuses = ['Draft', 'Active', 'Cancelled', 'Completed', 'Transferred'];
 
     /**
      * The unit being booked
@@ -74,6 +75,14 @@ class ReBooking extends Model
     public function installments()
     {
         return $this->hasMany(ReInstallment::class, 're_booking_id');
+    }
+
+    /**
+     * The deal associated with this booking
+     */
+    public function deal()
+    {
+        return $this->belongsTo(Deal::class, 'deal_id');
     }
 
     /**
@@ -146,5 +155,22 @@ class ReBooking extends Model
     public function calculateNetAmount()
     {
         return $this->total_price - $this->discount + $this->extra_charges;
+    }
+
+    public function tower()
+    {
+        return $this->belongsTo(ReTower::class, 're_tower_id');
+    }
+
+    // floor
+    public function floor()
+    {
+        return $this->belongsTo(ReFloor::class, 're_floor_id');
+    }
+
+    // project
+    public function project()
+    {
+        return $this->belongsTo(ReProject::class, 're_project_id');
     }
 }

@@ -295,14 +295,14 @@
                             </a>
 
                             <a href="#users_products"
-                                class="list-group-item list-group-item-action border-0">{{ __('Users') . ' | ' . __('Products') }}
+                                class="list-group-item list-group-item-action border-0">{{ __('Users') . ' | ' . __('Sources') }}
                                 <div class="float-end"><i class="ti ti-chevron-right"></i></div>
                             </a>
 
-                            <a href="#sources_emails"
-                                class="list-group-item list-group-item-action border-0">{{ __('Sources') . ' | ' . __('Emails') }}
+                            {{-- <a href="#sources_emails"
+                                class="list-group-item list-group-item-action border-0">{{ __('Products') . ' | ' . __('Emails') }}
                                 <div class="float-end"><i class="ti ti-chevron-right"></i></div>
-                            </a>
+                            </a> --}}
 
                             <a href="#discussion_note"
                                 class="list-group-item list-group-item-action border-0">{{ __('Discussion') . ' | ' . __('Notes') }}
@@ -313,9 +313,9 @@
                                 <div class="float-end"><i class="ti ti-chevron-right"></i></div>
                             </a>
 
-                            <a href="#calls" class="list-group-item list-group-item-action border-0">{{ __('Calls') }}
+                            {{-- <a href="#calls" class="list-group-item list-group-item-action border-0">{{ __('Calls') }}
                                 <div class="float-end"><i class="ti ti-chevron-right"></i></div>
-                            </a>
+                            </a> --}}
 
                             <a href="#activity"
                                 class="list-group-item list-group-item-action border-0">{{ __('Activity') }}
@@ -330,7 +330,7 @@
                     $tasks = $deal->tasks;
                     $products = $deal->products();
                     $sources = $deal->sources();
-                    $calls = $deal->calls;
+                    // $calls = $deal->calls;
                     $emails = $deal->emails;
                     ?>
                     <div id="general" class="card">
@@ -878,6 +878,65 @@
                         <div class="card">
                             <div class="card-header">
                                 <div class="d-flex align-items-center justify-content-between">
+                                    <h5>{{ __('Sources') }}</h5>
+
+                                    <div class="float-end">
+                                        <a data-size="md" data-url="{{ route('deals.sources.edit', $deal->id) }}"
+                                            data-ajax-popup="true" data-bs-toggle="tooltip"
+                                            title="{{ __('Add Source') }}" class="btn btn-sm btn-primary">
+                                            <i class="ti ti-plus"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>{{ __('Name') }}</th>
+                                                <th>{{ __('Action') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($sources as $source)
+                                                <tr>
+                                                    <td>{{ $source->name }} </td>
+                                                    @can('edit deal')
+                                                        <td>
+                                                            <div class="action-btn bg-danger ms-2">
+                                                                {!! Form::open([
+                                                                    'method' => 'DELETE',
+                                                                    'route' => ['deals.sources.destroy', $deal->id, $source->id],
+                                                                    'id' => 'delete-form-' . $deal->id,
+                                                                ]) !!}
+                                                                <a href="#"
+                                                                    class="mx-3 btn btn-sm  align-items-center bs-pass-para"
+                                                                    data-bs-toggle="tooltip" title="{{ __('Delete') }}"><i
+                                                                        class="ti ti-trash text-white"></i></a>
+
+                                                                {!! Form::close() !!}
+                                                            </div>
+                                                        </td>
+                                                    @endcan
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- <div id="sources_emails">
+                <div class="row">
+                  
+                     <div class="col-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex align-items-center justify-content-between">
                                     <h5>{{ __('Products') }}</h5>
 
                                     <div class="float-end">
@@ -931,63 +990,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div id="sources_emails">
-                <div class="row">
-                    <div class="col-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <h5>{{ __('Sources') }}</h5>
-
-                                    <div class="float-end">
-                                        <a data-size="md" data-url="{{ route('deals.sources.edit', $deal->id) }}"
-                                            data-ajax-popup="true" data-bs-toggle="tooltip"
-                                            title="{{ __('Add Source') }}" class="btn btn-sm btn-primary">
-                                            <i class="ti ti-plus"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th>{{ __('Name') }}</th>
-                                                <th>{{ __('Action') }}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($sources as $source)
-                                                <tr>
-                                                    <td>{{ $source->name }} </td>
-                                                    @can('edit deal')
-                                                        <td>
-                                                            <div class="action-btn bg-danger ms-2">
-                                                                {!! Form::open([
-                                                                    'method' => 'DELETE',
-                                                                    'route' => ['deals.sources.destroy', $deal->id, $source->id],
-                                                                    'id' => 'delete-form-' . $deal->id,
-                                                                ]) !!}
-                                                                <a href="#"
-                                                                    class="mx-3 btn btn-sm  align-items-center bs-pass-para"
-                                                                    data-bs-toggle="tooltip" title="{{ __('Delete') }}"><i
-                                                                        class="ti ti-trash text-white"></i></a>
-
-                                                                {!! Form::close() !!}
-                                                            </div>
-                                                        </td>
-                                                    @endcan
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <div class="col-6">
                         <div class="card">
                             <div class="card-header">
@@ -1037,7 +1039,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> --}}
             <div id="discussion_note">
                 <div class="row">
                     <div class="col-6">
@@ -1095,7 +1097,7 @@
                             <div class="card-header">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <h5>{{ __('Notes') }}</h5>
-                                    @php
+                                    {{-- @php
                                         $user = \App\Models\User::find(\Auth::user()->creatorId());
                                         $plan = \App\Models\Plan::getPlan($user->plan);
                                     @endphp
@@ -1115,7 +1117,7 @@
                                                 <i class="fas fa-robot"></i> <span>{{ __('Generate with AI') }}</span>
                                             </a>
                                         </div>
-                                    @endif
+                                    @endif --}}
                                 </div>
                             </div>
                             <div class="card-body">
@@ -1133,7 +1135,7 @@
                     <div class="col-md-12 dropzone top-5-scroll browse-file" id="dropzonewidget"></div>
                 </div>
             </div>
-            <div id="calls" class="card">
+            {{-- <div id="calls" class="card">
                 <div class="card-header">
                     <div class="d-flex align-items-center justify-content-between">
                         <h5>{{ __('Calls') }}</h5>
@@ -1198,7 +1200,7 @@
                         </table>
                     </div>
                 </div>
-            </div>
+            </div> --}}
             <div id="activity" class="card">
                 <div class="card-header">
                     <h5>{{ __('Activity') }}</h5>

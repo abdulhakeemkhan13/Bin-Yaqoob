@@ -37,7 +37,7 @@
                 </div>
                 <div class="form-group col-md-6">
                     {{ Form::label('father_or_spouse_name', __('Father / Spouse Name'), ['class' => 'form-label']) }}
-                    {{ Form::text('father_or_spouse_name', $prefill['father_or_spouse_name'], ['class' => 'form-control']) }}
+                    {{ Form::text('father_or_spouse_name', $prefill['father_or_spouse_name'], ['class' => 'form-control', 'required' => 'required']) }}
                 </div>
                 <div class="form-group col-md-6">
                     {{ Form::label('date_of_birth', __('Date of Birth'), ['class' => 'form-label']) }}
@@ -163,7 +163,7 @@
             <div class="row">
                 <div class="form-group col-md-6">
                     {{ Form::label('payment_plan_type', __('Plan Type'), ['class' => 'form-label']) }}
-                    {{ Form::select('payment_plan_type', ['Installment' => 'Installment', 'FullPayment' => 'Full Payment'], 'Installment', ['class' => 'form-control', 'id' => 'payment_plan_type']) }}
+                    {{ Form::select('payment_plan_type', ['Installment' => 'Installment', 'FullPayment' => 'Full Payment'], 'FullPayment', ['class' => 'form-control', 'id' => 'payment_plan_type']) }}
                 </div>
 
                 <div id="installment-section" class="col-12">
@@ -171,15 +171,35 @@
                         <div class="form-group col-md-6">
                             {{ Form::label('payment_plan_id', __('Select Template Plan'), ['class' => 'form-label']) }}
                             <select class="form-control" id="payment_plan_id" name="payment_plan_id">
-                                <option value="">{{ __('-- Select Payment Plan --') }}</option>
+                                {{-- <option value="">{{ __('-- Select Payment Plan --') }}</option> --}}
                                 @foreach ($payment_plans as $plan)
                                     <option value="{{ $plan->id }}"
                                         data-down-percent="{{ $plan->down_payment_percentage }}"
-                                        data-installments="{{ $plan->num_installments }}">
-                                        {{ $plan->plan_name }}
+                                        data-installments="{{ $plan->num_installments }}"
+                                        data-frequency="{{ $plan->frequency }}"
+                                        data-booking-charges="{{ $plan->booking_charges }}"
+                                        data-possession-charges="{{ $plan->possession_charges }}"
+                                        data-discount="{{ $plan->discount }}"
+                                        data-extra-charges="{{ $plan->extra_charges }}">
+                                        {{ $plan->plan_name }} ({{ $plan->frequency }})
                                     </option>
                                 @endforeach
                             </select>
+                        </div>
+
+                        <div class="form-group col-md-6">
+                            {{ Form::label('installment_frequency', __('Installment Frequency'), ['class' => 'form-label']) }}
+                            {{ Form::select(
+                                'installment_frequency',
+                                [
+                                    'Monthly' => 'Monthly ',
+                                    'Quarterly' => 'Quarterly',
+                                    'Half-Yearly' => 'Half Yearly',
+                                    'Yearly' => 'Yearly',
+                                ],
+                                'Monthly',
+                                ['class' => 'form-control', 'id' => 'installment_frequency', 'readonly' => 'readonly'],
+                            ) }}
                         </div>
 
                         <div class="form-group col-md-4">
@@ -194,7 +214,36 @@
 
                         <div class="form-group col-md-4">
                             {{ Form::label('installment_amount', __('Per Installment'), ['class' => 'form-label']) }}
-                            {{ Form::number('installment_amount', 0, ['class' => 'form-control', 'id' => 'installment_amount', 'step' => '0.01']) }}
+                            {{ Form::number('installment_amount', 0, ['class' => 'form-control', 'id' => 'installment_amount', 'step' => '0.01', 'readonly' => 'readonly']) }}
+                        </div>
+                    </div>
+
+                    <!-- Installment Schedule Preview -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <h6 class="mb-0">{{ __('Installment Schedule Preview') }}</h6>
+                                </div>
+                                <div class="card-body p-0" style="max-height: 250px; overflow-y: auto;">
+                                    <table class="table table-sm table-striped mb-0">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>{{ __('Type') }}</th>
+                                                <th>{{ __('Amount') }}</th>
+                                                <th>{{ __('Due Date') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="installment-preview-body">
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted">
+                                                    {{ __('Select a payment plan to see the schedule') }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -301,8 +350,49 @@
         let currentStep = 1;
         const totalSteps = 5;
 
+        // Validate current step required fields
+        function validateStep(step) {
+            let isValid = true;
+            let firstInvalidField = null;
+
+            $(`#step-${step} [required]`).each(function() {
+                let field = $(this);
+                let value = field.val();
+
+                // Remove previous error styling
+                field.removeClass('is-invalid');
+                field.siblings('.invalid-feedback').remove();
+
+                if (!value || value.trim() === '') {
+                    isValid = false;
+                    field.addClass('is-invalid');
+
+                    // Add error message
+                    let label = field.closest('.form-group').find('label').text() || 'This field';
+                    field.after(
+                    `<div class="invalid-feedback">{{ __('${label} is required') }}</div>`);
+
+                    if (!firstInvalidField) {
+                        firstInvalidField = field;
+                    }
+                }
+            });
+
+            if (!isValid && firstInvalidField) {
+                firstInvalidField.focus();
+                toastr.error('{{ __('Please fill all required fields') }}');
+            }
+
+            return isValid;
+        }
+
         // Navigation
         $('#next-step').click(function() {
+            // Validate current step before proceeding
+            if (!validateStep(currentStep)) {
+                return false;
+            }
+
             if (currentStep < totalSteps) {
                 $(`#step-${currentStep}`).removeClass('show active');
                 $(`.wizard-step[data-step="${currentStep}"]`).addClass('completed');
@@ -359,15 +449,112 @@
             if (opt.val()) {
                 let downP = parseFloat(opt.data('down-percent')) || 0;
                 let inst = parseInt(opt.data('installments')) || 0;
+                let frequency = opt.data('frequency') || 'Monthly';
                 let saleP = parseFloat($('#sale_price').val()) || 0;
 
                 let downAmt = (saleP * downP) / 100;
                 $('#down_payment_amount').val(downAmt.toFixed(2));
                 $('#installment_count').val(inst);
+                $('#installment_frequency').val(frequency);
 
                 calculateTotal();
+                generateInstallmentPreview();
             }
         });
+
+        function getFrequencyMonths(frequency) {
+            switch (frequency) {
+                case 'Monthly':
+                    return 1;
+                case 'Quarterly':
+                    return 3;
+                case 'Half-Yearly':
+                    return 6;
+                case 'Yearly':
+                    return 12;
+                default:
+                    return 1;
+            }
+        }
+
+        function addMonths(date, months) {
+            let result = new Date(date);
+            result.setMonth(result.getMonth() + months);
+            return result;
+        }
+
+        function formatDate(date) {
+            let year = date.getFullYear();
+            let month = ('0' + (date.getMonth() + 1)).slice(-2);
+            let day = ('0' + date.getDate()).slice(-2);
+            return `${year}-${month}-${day}`;
+        }
+
+        function generateInstallmentPreview() {
+            let saleP = parseFloat($('#sale_price').val()) || 0;
+            let downA = parseFloat($('#down_payment_amount').val()) || 0;
+            let instC = parseInt($('#installment_count').val()) || 0;
+            let frequency = $('#installment_frequency').val() || 'Monthly';
+            let bookingDate = $('#booking_date').val();
+
+            if (!bookingDate || saleP <= 0) {
+                $('#installment-preview-body').html(
+                    '<tr><td colspan="4" class="text-center text-muted">{{ __('Enter sale price and booking date to see schedule') }}</td></tr>'
+                );
+                return;
+            }
+
+            let startDate = new Date(bookingDate);
+            let frequencyMonths = getFrequencyMonths(frequency);
+            let remaining = saleP - downA;
+            let perInst = instC > 0 ? remaining / instC : 0;
+
+            let html = '';
+            let installmentNumber = 1;
+
+            // Down Payment row
+            if (downA > 0) {
+                let downDueDate = new Date(startDate);
+                downDueDate.setDate(downDueDate.getDate() + 7); // 7 days grace
+                html += `<tr>
+                    <td>${installmentNumber}</td>
+                    <td><span class="badge bg-success">Down Payment</span></td>
+                    <td>${parseFloat(downA).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>${formatDate(downDueDate)}</td>
+                </tr>`;
+                installmentNumber++;
+            }
+
+            // Installment rows
+            let totalDisbursed = downA;
+            for (let i = 0; i < instC; i++) {
+                let issueDate = addMonths(startDate, frequencyMonths * i);
+                let dueDate = new Date(issueDate);
+                dueDate.setDate(dueDate.getDate() + 15); // 15 days grace
+
+                // Last installment adjustment for rounding
+                let amount = perInst;
+                if (i === instC - 1) {
+                    amount = saleP - totalDisbursed;
+                }
+                totalDisbursed += amount;
+
+                html += `<tr>
+                    <td>${installmentNumber}</td>
+                    <td><span class="badge bg-primary">Installment ${i + 1}</span></td>
+                    <td>${parseFloat(amount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>${formatDate(dueDate)}</td>
+                </tr>`;
+                installmentNumber++;
+            }
+
+            if (html === '') {
+                html =
+                    '<tr><td colspan="4" class="text-center text-muted">{{ __('No installments to show') }}</td></tr>';
+            }
+
+            $('#installment-preview-body').html(html);
+        }
 
         function calculateTotal() {
             let saleP = parseFloat($('#sale_price').val()) || 0;
@@ -379,9 +566,13 @@
 
             $('#installment_amount').val(perInst.toFixed(2));
             $('#total_payable_display').text(saleP.toLocaleString());
+
+            // Update preview when values change
+            generateInstallmentPreview();
         }
 
-        $('#sale_price, #down_payment_amount, #installment_count').on('input', calculateTotal);
+        $('#sale_price, #down_payment_amount, #installment_count, #installment_frequency, #booking_date').on(
+            'input change', calculateTotal);
 
         // Toggle installment section based on plan type
         $('#payment_plan_type').change(function() {
