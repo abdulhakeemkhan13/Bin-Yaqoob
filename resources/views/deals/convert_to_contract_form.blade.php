@@ -660,6 +660,21 @@
                     '<tr><td colspan="4" class="text-center text-muted">{{ __('No installments to show') }}</td></tr>';
             }
 
+            // Add summary rows at the bottom for Discount and Possession Charge
+            html += `
+                <tr class="table-secondary">
+                    <td colspan="4"><strong>{{ __('Deductions/Charges Summary') }}</strong></td>
+                </tr>
+                <tr class="table-light">
+                    <td colspan="2"><strong>{{ __('(-) Discount') }}</strong></td>
+                    <td colspan="2" class="text-end"><strong class="text-success">${discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                </tr>
+                <tr class="table-light">
+                    <td colspan="2"><strong>{{ __('(-) Possession Charge') }}</strong></td>
+                    <td colspan="2" class="text-end"><strong class="text-warning">${possessionCharge.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                </tr>
+            `;
+
             $('#installment-preview-body').html(html);
         }
 

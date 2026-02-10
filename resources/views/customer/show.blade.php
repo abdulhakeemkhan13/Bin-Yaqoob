@@ -423,7 +423,7 @@
                                                 return $i->status != 'paid' && $i->due_date && $i->due_date < now();
                                             })
                                             ->sum('amount');
-                                        $remainingAmount = $totalInstallmentAmount - $paidInstallmentAmount;
+                                        $remainingAmount = $contract->other_charges + $totalInstallmentAmount - $paidInstallmentAmount;
                                         $discountAmount =
                                             ($contract->sale_price ?? 0) - ($contract->net_sale_price ?? 0);
                                     @endphp
@@ -645,9 +645,62 @@
                                                     </tr>
                                                 @endif
                                             @endforeach
+
+                                            {{-- Discount and Possession Charge Rows --}}
+                                            @php
+                                                $sno = $contract->installments->count() + 1;
+                                                $rowspan = 1;
+                                            @endphp
+
+                                            @if ($contract->other_charges > 0)
+                                                <tr class="table-light">
+                                                    <td class="text-center">{{ $sno++ }}</td>
+                                                    <td colspan="2"><strong>{{ __('Possession Charge') }}</strong>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($contract->other_charges) }}
+                                                    </td>
+                                                    <td colspan="2">
+                                                        <small class="text-muted">
+                                                            {{ $contract->possession_charge_percentage }}%
+                                                            {{ __('possession charge') }}
+                                                        </small>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($contract->other_charges) }}
+                                                    </td>
+                                                </tr>
+                                            @endif
+
+                                            @if ($contract->discount_amount > 0)
+                                                <tr class="table-light">
+                                                    <td class="text-center">{{ $sno++ }}</td>
+                                                    <td colspan="2"><strong>{{ __('Discount') }}</strong></td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($contract->discount_amount) }}
+                                                    </td>
+                                                    <td colspan="2">
+                                                        <small class="text-muted">
+                                                            @if ($contract->discount_type == 'percentage')
+                                                                {{ $contract->discount_value }}%
+                                                                {{ __('percentage discount') }}
+                                                            @else
+                                                                {{ __('Fixed amount discount') }}
+                                                            @endif
+                                                        </small>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat(0) }}
+                                                    </td>
+                                                </tr>
+                                            @endif
+
                                             {{-- Total Row --}}
                                             @php
                                                 $totalDueAmount = $contract->installments->sum('amount');
+                                                if ($contract->other_charges > 0) {
+                                                    $totalDueAmount += $contract->other_charges;
+                                                }
                                                 $totalPaidAmount = $contract->installments->sum(function ($inst) {
                                                     return $inst->invoice ? $inst->invoice->payments->sum('amount') : 0;
                                                 });
@@ -677,7 +730,7 @@
             </div>
         @endforeach
     @endif
-        <div class="row">
+    <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body table-border-style table-border-style">

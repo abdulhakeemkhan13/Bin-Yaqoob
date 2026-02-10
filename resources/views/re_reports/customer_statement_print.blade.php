@@ -358,8 +358,50 @@
             @endif
             </tr>
             @endforeach
+            @if ($contract->other_charges > 0)
+                <tr style="background-color: #f8f9fa;">
+                    <td rowspan="{{ $rowspan }}" class="text-center">{{ $sno++ }}</td>
+                    <td colspan="2" style="font-weight: bold; text-align: left;"> Possession Charge</td>
+                    <td class="text-end" style="font-weight: bold; ">
+                        {{ number_format($contract->other_charges, 2) }}
+                    </td>
+                    <td colspan="3" style="font-size: 10px; ">
+                        {{ $contract->possession_charge_percentage }}% possession charge
+                    </td>
+                    <td rowspan="{{ $rowspan }}" class="text-end" style="vertical-align: middle;">
+                        {{ number_format($contract->possession_charge_percentage, 2) }}</td>
+                    @php
+                        $totalDue += $contract->other_charges;
+                    @endphp
+                </tr>
+            @endif
+            @if ($contract->discount_amount > 0)
+                <tr style="background-color: #f8f9fa;">
+                    <td rowspan="{{ $rowspan }}" class="text-center">{{ $sno++ }}</td>
+                    <td colspan="2" style="font-weight: bold; text-align: left;"> Discount</td>
+                    <td class="text-end" style="font-weight: bold; ">
+                        {{ number_format($contract->discount_amount, 2) }}
+                    </td>
+                    <td colspan="3" style="font-size: 10px; ">
+                        @if ($contract->discount_type == 'percentage')
+                            {{ $contract->discount_value }}% percentage discount
+                        @else
+                            Fixed amount discount
+                        @endif
+                    </td>
+                    <td rowspan="{{ $rowspan }}" class="text-end" style="vertical-align: middle;">
+                        {{ number_format(0, 2) }}</td>
+                </tr>
+            @endif
+
         </tbody>
         <tfoot>
+            @php
+                // Subtract discount from total instead of adding possession charge
+                if ($contract->discount_amount > 0) {
+                    $totalDue ;
+                }
+            @endphp
             <tr style="background-color: #f2f2f2; font-weight: bold;">
                 <td colspan="3" class="text-end">TOTAL</td>
                 <td class="text-end">{{ number_format($totalDue, 2) }}</td>

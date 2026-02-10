@@ -626,7 +626,7 @@
                             <div class="col-md-3 col-sm-6">
                                 <p class="text-muted text-sm mb-0">{{ __('Total Payable') }}</p>
                                 <h6 class="mb-0 text-primary">
-                                    {{ \Auth::user()->priceFormat($contract->installment_plan->total_payable ?? 0) }}</h6>
+                                    {{ \Auth::user()->priceFormat($contract->installment_plan->total_payable - $contract->discount_amount ?? 0) }}</h6>
                             </div>
                         @else
                             <div class="col-md-9">
@@ -704,12 +704,63 @@
                                                 </td>
                                             </tr>
                                         @endforeach
+
+                                        @php
+                                            $installmentNumber = $contract->installments->count() + 1;
+                                        @endphp
+
+                                        @if ($contract->other_charges > 0)
+                                            <tr class="table-light">
+                                                <td>{{ $installmentNumber++ }}</td>
+                                                <td colspan="2"><strong>{{ __('Possession Charge') }}</strong></td>
+                                                <td class="fw-bold">
+                                                    {{ \Auth::user()->priceFormat($contract->other_charges) }}
+                                                </td>
+                                                <td colspan="2">
+                                                    <small class="text-muted">
+                                                        {{ $contract->possession_charge_percentage }}%
+                                                        {{ __('possession charge') }}
+                                                    </small>
+                                                </td>
+                                                <td class="text-end">
+                                                    {{ \Auth::user()->priceFormat($contract->other_charges) }}
+                                                </td>
+                                            </tr>
+                                        @endif
+
+                                        @if ($contract->discount_amount > 0)
+                                            <tr class="table-light">
+                                                <td>{{ $installmentNumber++ }}</td>
+                                                <td colspan="2"><strong>{{ __('Discount') }}</strong></td>
+                                                <td class="fw-bold">
+                                                    {{ \Auth::user()->priceFormat($contract->discount_amount) }}
+                                                </td>
+                                                <td colspan="2">
+                                                    <small class="text-muted">
+                                                        @if ($contract->discount_type == 'percentage')
+                                                            {{ $contract->discount_value }}%
+                                                            {{ __('percentage discount') }}
+                                                        @else
+                                                            {{ __('Fixed amount discount') }}
+                                                        @endif
+                                                    </small>
+                                                </td>
+                                                <td class="text-end">
+                                                    {{ \Auth::user()->priceFormat(0) }}
+                                                </td>
+                                            </tr>
+                                        @endif
                                     </tbody>
                                     <tfoot>
                                         <tr class="bg-light">
                                             <td colspan="2"><strong>{{ __('Total') }}</strong></td>
                                             <td class="text-primary fw-bold">
-                                                {{ \Auth::user()->priceFormat($contract->installments->sum('amount')) }}
+                                                @php
+                                                    $installmentsTotal = $contract->installments->sum('amount');
+                                                    $discountAmount = $contract->discount_amount ?? 0;
+                                                    $finalTotal = $installmentsTotal + $contract->other_charges;
+                                                @endphp
+                                                {{ \Auth::user()->priceFormat($finalTotal) }}
                                             </td>
                                             <td colspan="4"></td>
                                         </tr>

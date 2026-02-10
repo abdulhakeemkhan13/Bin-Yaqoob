@@ -1647,7 +1647,7 @@
                     $userDesignation = 'Company';
                 }
             @endphp
-            @if (\Auth::user()->type == 'company' || in_array($userDesignation, App\Models\MinutesSheet::APPROVAL_CHAIN))
+            {{-- @if (\Auth::user()->type == 'company' || in_array($userDesignation, App\Models\MinutesSheet::APPROVAL_CHAIN))
                 <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'minutes-sheet' ? 'active' : '' }}">
                     <a href="{{ route('minutes-sheet.index') }}" class="dash-link">
                         <span class="dash-micon"><i class="ti ti-file"></i></span><span
@@ -1660,7 +1660,7 @@
                             class="dash-mtext">{{ __('Check List') }}</span>
                     </a>
                 </li>
-            @endif
+            @endif --}}
             <!--------------------- Start CRM ----------------------------------->
 
             @if (!empty($userPlan) && $userPlan->crm == 1)
