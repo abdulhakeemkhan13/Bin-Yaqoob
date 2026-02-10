@@ -43,7 +43,25 @@ class Contract extends Model
         'payment_plan_type',
         'penalty_percent_per_month',
         'grace_days',
+        // Fine configuration fields
+        'fine_percentage',
+        'fine_apply_after_due_date',
+        'fine_frequency',
+        // Discount configuration fields
+        'discount_type',
+        'discount_value',
+        // Possession charge fields
+        'possession_charge_percentage',
+        'possession_charge_type',
     ];
+
+    // Fine frequency constants
+    const FINE_FREQUENCY_ONE_TIME = 'one_time';
+    const FINE_FREQUENCY_EVERY_MONTH = 'every_month_after_due';
+
+    // Discount type constants
+    const DISCOUNT_TYPE_PERCENTAGE = 'percentage';
+    const DISCOUNT_TYPE_FIXED = 'fixed_amount';
 
     public static $status = [
         'accept' => 'Accept',

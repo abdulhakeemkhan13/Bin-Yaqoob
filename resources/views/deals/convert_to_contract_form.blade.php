@@ -49,11 +49,11 @@
                 </div>
                 <div class="form-group col-md-6">
                     {{ Form::label('cnic_number', __('CNIC / NTN Number'), ['class' => 'form-label']) }}
-                    {{ Form::text('cnic_number', $prefill['cnic_number'], ['class' => 'form-control', 'required' => 'required']) }}
+                    {{ Form::text('cnic_number', $prefill['cnic_number'], ['class' => 'form-control', 'required' => 'required', 'data-inputmask' => "'mask': '99999-9999999-9'", 'data-mask' => 'true', 'minlength' => '13', 'maxlength' => '13']) }}
                 </div>
                 <div class="form-group col-md-6">
                     {{ Form::label('mobile_primary', __('Mobile (Primary)'), ['class' => 'form-label']) }}
-                    {{ Form::text('mobile_primary', $prefill['mobile_primary'], ['class' => 'form-control', 'required' => 'required']) }}
+                    {{ Form::text('mobile_primary', $prefill['mobile_primary'], ['class' => 'form-control', 'required' => 'required', 'data-inputmask' => "'mask': '9999999999'", 'data-mask' => 'true', 'minlength' => '9', 'maxlength' => '12']) }}
                 </div>
                 <div class="form-group col-md-6">
                     {{ Form::label('email', __('Email'), ['class' => 'form-label']) }}
@@ -189,17 +189,8 @@
 
                         <div class="form-group col-md-6">
                             {{ Form::label('installment_frequency', __('Installment Frequency'), ['class' => 'form-label']) }}
-                            {{ Form::select(
-                                'installment_frequency',
-                                [
-                                    'Monthly' => 'Monthly ',
-                                    'Quarterly' => 'Quarterly',
-                                    'Half-Yearly' => 'Half Yearly',
-                                    'Yearly' => 'Yearly',
-                                ],
-                                'Monthly',
-                                ['class' => 'form-control', 'id' => 'installment_frequency', 'readonly' => 'readonly'],
-                            ) }}
+                            {{ Form::text('installment_frequency', 'Monthly', ['class' => 'form-control', 'id' => 'installment_frequency', 'readonly' => 'readonly']) }}
+                            <small class="text-muted">{{ __('Based on selected payment plan') }}</small>
                         </div>
 
                         <div class="form-group col-md-4">
@@ -248,9 +239,109 @@
                     </div>
                 </div>
 
+                <hr class="my-4">
+
+                <!-- Fine Configuration Section -->
+                <div class="col-12">
+                    <h6 class="mb-3"><i class="ti ti-clock-exclamation"></i> {{ __('Fine Configuration') }}</h6>
+                </div>
+                <div class="form-group col-md-4">
+                    {{ Form::label('fine_percentage', __('Fine Percentage (%)'), ['class' => 'form-label']) }}
+                    {{ Form::number('fine_percentage', 0, ['class' => 'form-control', 'id' => 'fine_percentage', 'step' => '0.01', 'min' => '0', 'max' => '100', 'placeholder' => 'e.g., 2']) }}
+                    <small class="text-muted">{{ __('Percentage to apply as fine on overdue amount') }}</small>
+                </div>
+                <div class="form-group col-md-4">
+                    {{ Form::label('fine_apply_after_due_date', __('Apply After (Days)'), ['class' => 'form-label']) }}
+                    {{ Form::number('fine_apply_after_due_date', 0, ['class' => 'form-control', 'id' => 'fine_apply_after_due_date', 'min' => '0', 'placeholder' => 'e.g., 5']) }}
+                    <small class="text-muted">{{ __('Number of days after due date before fine applies') }}</small>
+                </div>
+                <div class="form-group col-md-4">
+                    {{ Form::label('fine_frequency', __('Fine Frequency'), ['class' => 'form-label']) }}
+                    {{ Form::select(
+                        'fine_frequency',
+                        [
+                            'one_time' => 'One Time Only',
+                            'every_month_after_due' => 'Every Month After Due',
+                        ],
+                        'one_time',
+                        ['class' => 'form-control', 'id' => 'fine_frequency'],
+                    ) }}
+                    <small class="text-muted">{{ __('How often to apply the fine') }}</small>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Discount Configuration Section -->
+                <div class="col-12">
+                    <h6 class="mb-3"><i class="ti ti-discount"></i> {{ __('Discount Configuration') }}</h6>
+                </div>
+                <div class="form-group col-md-6">
+                    {{ Form::label('discount_type', __('Discount Type'), ['class' => 'form-label']) }}
+                    {{ Form::select(
+                        'discount_type',
+                        [
+                            '' => 'No Discount',
+                            'percentage' => 'Percentage',
+                            'fixed_amount' => 'Fixed Amount',
+                        ],
+                        '',
+                        ['class' => 'form-control', 'id' => 'discount_type'],
+                    ) }}
+                </div>
+                <div class="form-group col-md-6">
+                    {{ Form::label('discount_value', __('Discount Value'), ['class' => 'form-label']) }}
+                    {{ Form::number('discount_value', 0, ['class' => 'form-control', 'id' => 'discount_value', 'step' => '0.01', 'min' => '0', 'placeholder' => 'Enter discount value']) }}
+                    <small class="text-muted"
+                        id="discount_hint">{{ __('Enter percentage or fixed amount based on type selected') }}</small>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Possession Charge Section -->
+                <div class="col-12">
+                    <h6 class="mb-3"><i class="ti ti-home-check"></i> {{ __('Possession Charges') }}</h6>
+                </div>
+                <div class="form-group col-md-6">
+                    {{ Form::label('possession_charge_percentage', __('Possession Charge (%)'), ['class' => 'form-label']) }}
+                    {{ Form::number('possession_charge_percentage', 0, ['class' => 'form-control', 'id' => 'possession_charge_percentage', 'step' => '0.01', 'min' => '0', 'max' => '100']) }}
+                    <small class="text-muted">{{ __('Percentage of sale price as possession charge') }}</small>
+                </div>
+                <div class="form-group col-md-6">
+                    {{ Form::label('possession_charge_type', __('Possession Charge Type'), ['class' => 'form-label']) }}
+                    {{ Form::select(
+                        'possession_charge_type',
+                        [
+                            '' => 'Select Type',
+                            'on_handover' => 'On Handover',
+                            'installment' => 'Part of Installment Plan',
+                        ],
+                        '',
+                        ['class' => 'form-control', 'id' => 'possession_charge_type'],
+                    ) }}
+                </div>
+
+                <hr class="my-4">
+
                 <div class="col-12 mt-3">
-                    <div class="alert alert-secondary text-center">
-                        <strong>{{ __('Total Payable:') }}</strong> <span id="total_payable_display">0.00</span>
+                    <div class="alert alert-secondary">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <strong>{{ __('Sale Price:') }}</strong><br>
+                                <span id="sale_price_display" class="h5">0.00</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>{{ __('Discount:') }}</strong><br>
+                                <span id="discount_amount_display" class="h5 text-success">0.00</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>{{ __('Possession Charge:') }}</strong><br>
+                                <span id="possession_charge_display" class="h5 text-warning">0.00</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>{{ __('Total Payable:') }}</strong><br>
+                                <span id="total_payable_display" class="h5 text-primary">0.00</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -370,7 +461,7 @@
                     // Add error message
                     let label = field.closest('.form-group').find('label').text() || 'This field';
                     field.after(
-                    `<div class="invalid-feedback">{{ __('${label} is required') }}</div>`);
+                        `<div class="invalid-feedback">{{ __('${label} is required') }}</div>`);
 
                     if (!firstInvalidField) {
                         firstInvalidField = field;
@@ -506,8 +597,24 @@
 
             let startDate = new Date(bookingDate);
             let frequencyMonths = getFrequencyMonths(frequency);
-            let remaining = saleP - downA;
-            let perInst = instC > 0 ? remaining / instC : 0;
+
+            // Calculate discount
+            let discountType = $('#discount_type').val();
+            let discountValue = parseFloat($('#discount_value').val()) || 0;
+            let discountAmount = 0;
+            if (discountType === 'percentage') {
+                discountAmount = (saleP * discountValue) / 100;
+            } else if (discountType === 'fixed_amount') {
+                discountAmount = discountValue;
+            }
+
+            // Calculate possession charge
+            let possessionChargePercent = parseFloat($('#possession_charge_percentage').val()) || 0;
+            let possessionCharge = (saleP * possessionChargePercent) / 100;
+
+            // Calculate installment base: Sale Price - Down Payment - Discount - Possession Charge
+            let installmentBase = saleP - downA - discountAmount - possessionCharge;
+            let perInst = instC > 0 ? installmentBase / instC : 0;
 
             let html = '';
             let installmentNumber = 1;
@@ -526,7 +633,7 @@
             }
 
             // Installment rows
-            let totalDisbursed = downA;
+            let totalDisbursed = 0;
             for (let i = 0; i < instC; i++) {
                 let issueDate = addMonths(startDate, frequencyMonths * i);
                 let dueDate = new Date(issueDate);
@@ -535,7 +642,7 @@
                 // Last installment adjustment for rounding
                 let amount = perInst;
                 if (i === instC - 1) {
-                    amount = saleP - totalDisbursed;
+                    amount = installmentBase - totalDisbursed;
                 }
                 totalDisbursed += amount;
 
@@ -561,18 +668,76 @@
             let downA = parseFloat($('#down_payment_amount').val()) || 0;
             let instC = parseInt($('#installment_count').val()) || 1;
 
-            let remaining = saleP - downA;
-            let perInst = instC > 0 ? remaining / instC : 0;
+            // Calculate discount
+            let discountType = $('#discount_type').val();
+            let discountValue = parseFloat($('#discount_value').val()) || 0;
+            let discountAmount = 0;
+
+            if (discountType === 'percentage') {
+                discountAmount = (saleP * discountValue) / 100;
+            } else if (discountType === 'fixed_amount') {
+                discountAmount = discountValue;
+            }
+
+            // Calculate possession charge
+            let possessionChargePercent = parseFloat($('#possession_charge_percentage').val()) || 0;
+            let possessionCharge = (saleP * possessionChargePercent) / 100;
+
+            // Calculate net total
+            let netTotal = saleP - discountAmount;
+
+            // Update displays
+            $('#sale_price_display').text(saleP.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }));
+
+            // Discount shows as negative (subtraction)
+            $('#discount_amount_display').text(discountAmount.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }));
+
+            // Possession charge shows as positive (addition)
+            $('#possession_charge_display').text(possessionCharge.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }));
+
+            $('#total_payable_display').text(netTotal.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }));
+
+
+            // Calculate installment amount: Sale Price - Down Payment - Discount - Possession Charge
+            // Example: 1,200,000 - 120,000 - 60,000 - 60,000 = 960,000 / number of installments
+            let installmentBase = saleP - downA - discountAmount - possessionCharge;
+            let perInst = instC > 0 ? installmentBase / instC : 0;
 
             $('#installment_amount').val(perInst.toFixed(2));
-            $('#total_payable_display').text(saleP.toLocaleString());
+
 
             // Update preview when values change
             generateInstallmentPreview();
         }
 
-        $('#sale_price, #down_payment_amount, #installment_count, #installment_frequency, #booking_date').on(
-            'input change', calculateTotal);
+        $('#sale_price, #down_payment_amount, #installment_count, #installment_frequency, #booking_date, #discount_type, #discount_value, #possession_charge_percentage')
+            .on(
+                'input change', calculateTotal);
+
+        // Update discount hint based on type
+        $('#discount_type').on('change', function() {
+            let hint = '';
+            if ($(this).val() === 'percentage') {
+                hint = '{{ __('Enter percentage value (e.g., 10 for 10%)') }}';
+            } else if ($(this).val() === 'fixed_amount') {
+                hint = '{{ __('Enter fixed discount amount') }}';
+            } else {
+                hint = '{{ __('Enter percentage or fixed amount based on type selected') }}';
+            }
+            $('#discount_hint').text(hint);
+        });
 
         // Toggle installment section based on plan type
         $('#payment_plan_type').change(function() {

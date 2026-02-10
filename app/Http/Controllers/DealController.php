@@ -276,10 +276,10 @@ class DealController extends Controller
                 $deal->name = $request->name;
                 $deal->phone = $request->phone;
                 $deal->email = $request->email;
-                if (empty($request->price)) {
+                if (empty($request->offered_price)) {
                     $deal->price = 0;
                 } else {
-                    $deal->price = $request->price;
+                    $deal->price = $request->offered_price;
                 }
                 $deal->pipeline_id = $pipeline->id;
                 $deal->stage_id = $stage->id;
@@ -685,10 +685,10 @@ class DealController extends Controller
 
                 $deal->name = $request->name;
                 $deal->phone = $request->phone;
-                if (empty($request->price)) {
+                if (empty($request->offered_price   )) {
                     $deal->price = 0;
                 } else {
-                    $deal->price = $request->price;
+                    $deal->price = $request->offered_price;
                 }
                 
                 // Unit reservation logic - handle status changes
@@ -2521,7 +2521,7 @@ class DealController extends Controller
     public function getUnitsByFloor(Request $request)
     {
         $units = \App\Models\ReUnit::where('re_floor_id', $request->floor_id)
-            ->where('status', '!=', 'Sold')
+            ->whereNotIn('status', ['Sold', 'Booked'])
             ->get()
             ->mapWithKeys(function($u) {
                 return [$u->id => $u->unit_number . ' (' . $u->status . ')'];
@@ -2634,6 +2634,16 @@ class DealController extends Controller
                     'unit_id' => 'required',
                     'sale_price' => 'required|numeric|min:0',
                     'booking_date' => 'required|date',
+                    // Fine configuration validation
+                    'fine_percentage' => 'nullable|numeric|min:0|max:100',
+                    'fine_apply_after_due_date' => 'nullable|integer|min:0',
+                    'fine_frequency' => 'nullable|in:one_time,every_month_after_due',
+                    // Discount configuration validation
+                    'discount_type' => 'nullable|in:percentage,fixed_amount',
+                    'discount_value' => 'nullable|numeric|min:0',
+                    // Possession charge validation
+                    'possession_charge_percentage' => 'nullable|numeric|min:0|max:100',
+                    'possession_charge_type' => 'nullable|string',
                 ]
             );
 
@@ -2715,20 +2725,51 @@ class DealController extends Controller
                 $customer->client_id = $clientUser->id;
                 $customer->save();
 
-                // 3. Create Contract
+                // 3. Calculate Discount and Possession Charges
+                $salePrice = $request->sale_price;
+                $discountAmount = 0;
+                $possessionCharge = 0;
+
+                // Calculate discount based on type
+                if ($request->discount_type && $request->discount_value) {
+                    if ($request->discount_type === 'percentage') {
+                        $discountAmount = ($salePrice * $request->discount_value) / 100;
+                    } else if ($request->discount_type === 'fixed_amount') {
+                        $discountAmount = $request->discount_value;
+                    }
+                }
+
+                // Calculate possession charge
+                if ($request->possession_charge_percentage) {
+                    $possessionCharge = ($salePrice * $request->possession_charge_percentage) / 100;
+                }
+
+                // Calculate net sale price (Sale Price - Discount)
+                // Possession charge is tracked separately and NOT included in installments
+                $netSalePrice = $salePrice - $discountAmount;
+
+                // 4. Create Contract
                 $contract = new \App\Models\Contract();
                 $contract->fill($request->only([
                     'subject', 'tower_id', 'floor_id', 'unit_id',
                     'sale_price', 'booking_date', 'agreement_date', 'possession_due_date',
-                    'payment_plan_type'
+                    'payment_plan_type',
+                    // Fine configuration fields
+                    'fine_percentage', 'fine_apply_after_due_date', 'fine_frequency',
+                    // Discount configuration fields
+                    'discount_type', 'discount_value',
+                    // Possession charge fields
+                    'possession_charge_percentage', 'possession_charge_type'
                 ]));
                 
                 $contract->re_project_id = $request->project_id;
                 $contract->project_id = $deal->project_id; // compatibility
                 $contract->customer_id = $customer->id;
                 $contract->client_name = $clientUser->id;
-                $contract->value = $request->sale_price;
-                $contract->net_sale_price = $request->sale_price;
+                $contract->value = $salePrice;
+                $contract->discount_amount = $discountAmount;
+                $contract->other_charges = $possessionCharge;
+                $contract->net_sale_price = $netSalePrice;
                 $contract->deal_id = $id;
                 $contract->status = 'pending';
                 $contract->start_date = $request->booking_date;
@@ -2779,6 +2820,9 @@ class DealController extends Controller
                 ]);
 
                 // 5. Freeze Installment Plan
+                // Total payable for installments = Sale Price - Down Payment - Discount - Possession Charge
+                $installmentTotal = $salePrice - ($request->down_payment_amount ?? 0) - $discountAmount - $possessionCharge;
+                
                 $installmentPlan = FrozenInstallmentPlan::create([
                     'contract_id' => $contract->id,
                     'down_payment_amount' => $request->down_payment_amount ?? 0,
@@ -2786,7 +2830,7 @@ class DealController extends Controller
                     'installment_count' => $request->installment_count ?? 1,
                     'installment_frequency' => $request->installment_frequency ?? 'Monthly',
                     'installment_amount' => $request->installment_amount ?? 0,
-                    'total_payable' => $request->sale_price,
+                    'total_payable' => $salePrice, // Full sale price for reference
                     'plan_start_date' => $request->booking_date,
                 ]);
 
@@ -2839,15 +2883,16 @@ class DealController extends Controller
                     $reBooking->customer_phone = $customer->mobile_primary;
                     $reBooking->customer_cnic = $customer->cnic_number;
                     $reBooking->customer_email = $customer->email;
-                    $reBooking->total_price = $request->sale_price;
+                    $reBooking->total_price = $salePrice;
                     $reBooking->down_payment = $request->down_payment_amount ?? 0;
-                    $reBooking->net_amount = $request->sale_price - ($reBooking->discount ?? 0);
+                    $reBooking->discount = $discountAmount;
+                    $reBooking->net_amount = $netSalePrice;
                     $reBooking->save();
                 }
 
                 // 8. Generate Installment Schedule
                 if ($request->payment_plan_type === 'Installment' && $installmentPlan) {
-                    $this->generateInstallmentSchedule($contract, $installmentPlan, $request->unit_id);
+                    $this->generateInstallmentSchedule($contract, $installmentPlan, $request->unit_id, $discountAmount, $possessionCharge);
                 }
 
                 if ($request->has('customField')) {
@@ -2910,7 +2955,7 @@ class DealController extends Controller
     /**
      * Generate installment schedule records for a contract
      */
-    private function generateInstallmentSchedule($contract, $installmentPlan, $unitId)
+    private function generateInstallmentSchedule($contract, $installmentPlan, $unitId, $discountAmount = 0, $possessionCharge = 0)
     {
         $creatorId = \Auth::user()->creatorId();
         $ownedId = \Auth::user()->ownedId();
@@ -2956,14 +3001,15 @@ class DealController extends Controller
         $totalPayable = $installmentPlan->total_payable ?? 0;
         $downPayment = $installmentPlan->down_payment_amount ?? 0;
         
-        // Calculate remaining amount after down payment
-        $remainingAmount = $totalPayable - $downPayment;
+        // Calculate remaining amount: Total - Down Payment - Discount - Possession Charge
+        // Example: 1,200,000 - 120,000 - 60,000 - 60,000 = 960,000
+        $remainingAmount = $totalPayable - $downPayment - $discountAmount - $possessionCharge;
         
         // Calculate per installment amount (rounded to 2 decimals)
         $installmentAmount = $numInstallments > 0 ? round($remainingAmount / $numInstallments, 2) : 0;
         
-        // Track total disbursed for rounding adjustment
-        $totalDisbursed = $downPayment;
+        // Track total disbursed for rounding adjustment (only for installments, NOT including down payment)
+        $totalDisbursed = 0;
         
         for ($i = 0; $i < $numInstallments; $i++) {
             $issueDate = $startDate->copy()->addMonths($frequencyMonths * $i);
@@ -2973,7 +3019,7 @@ class DealController extends Controller
             $amount = $installmentAmount;
             if ($i == $numInstallments - 1) {
                 // Last installment gets the remaining balance to ensure exact total
-                $amount = round($totalPayable - $totalDisbursed, 2);
+                $amount = round($remainingAmount - $totalDisbursed, 2);
             }
             $totalDisbursed += $amount;
             

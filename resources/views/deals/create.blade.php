@@ -23,7 +23,7 @@
             {{ Form::label('phone', __('Phone'), ['class' => 'form-label']) }}
             {{ Form::text('phone', null, ['class' => 'form-control', 'required' => 'required']) }}
         </div>
-        <div class="col-6 form-group">
+        <div class="col-6 form-group d-none">
             {{ Form::label('price', __('Price'), ['class' => 'form-label']) }}
             {{ Form::number('price', 0, ['class' => 'form-control', 'min' => 0]) }}
         </div>

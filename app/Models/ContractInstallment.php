@@ -22,6 +22,10 @@ class ContractInstallment extends Model
         'description',
         'created_by',
         'owned_by',
+        // Fine tracking fields
+        'fine_amount',
+        'fine_applied_date',
+        'last_fine_calculation_date',
     ];
 
     protected $casts = [
