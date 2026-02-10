@@ -266,6 +266,11 @@
             title="{{ __('Download') }}" target="_blanks">
             <i class="ti ti-download"></i>
         </a>
+        <a href="{{ route('re-reports.customer-statement-print', $contract->id) }}" target="_blank"
+            class="btn btn-sm btn-primary btn-icon m-1" data-bs-toggle="tooltip" data-bs-placement="top"
+            title="{{ __('Statement') }}">
+            <i class="ti ti-printer"></i>
+        </a>
         <a href="{{ route('get.contract', $contract->id) }}" target="_blank" class="btn btn-sm btn-primary btn-icon m-1">
             <i class="ti ti-eye text-white" data-bs-toggle="tooltip" data-bs-original-title="{{ __('PreView') }}"> </i>
         </a>
@@ -275,11 +280,11 @@
                 data-bs-toggle="tooltip" data-bs-original-title="{{ __('Send Email') }}">
                 <i class="ti ti-mail text-white"></i>
             </a>
-            <a href="#" class="btn btn-sm btn-primary btn-icon m-1" data-size="lg"
+            {{-- <a href="#" class="btn btn-sm btn-primary btn-icon m-1" data-size="lg"
                 data-url="{{ route('contract.copy', $contract->id) }}" data-ajax-popup="true" data-bs-toggle="tooltip"
                 title="{{ __('Duplicate') }}" class="btn btn-sm btn-primary">
                 <i class="ti ti-copy text-white"></i>
-            </a>
+            </a> --}}
         @endif
 
         @if (\Auth::user()->type == 'company')

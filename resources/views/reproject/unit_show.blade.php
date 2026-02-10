@@ -13,6 +13,12 @@
 
 @section('action-btn')
     <div class="float-end">
+        @if ($unit->status === 'Sold' && $contract)
+            <a href="{{ route('re-reports.customer-statement-print', $contract->id) }}" target="_blank"
+                class="btn btn-sm btn-primary me-2">
+                <i class="ti ti-printer"></i> {{ __('Statement') }}
+            </a>
+        @endif
         <a href="{{ route('re-projects.show', $project->id) }}" class="btn btn-sm btn-secondary">
             <i class="ti ti-arrow-left"></i> {{ __('Back to Project') }}
         </a>
@@ -32,15 +38,15 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="text-muted small">{{ __('Unit Number') }}</label>
                             <p class="mb-0 fw-bold">{{ $unit->unit_number }}</p>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="text-muted small">{{ __('Unit Type') }}</label>
                             <p class="mb-0">{{ $unit->unit_type }}</p>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="text-muted small">{{ __('Status') }}</label>
                             <p class="mb-0">
                                 @if ($unit->status == 'Available')
@@ -54,25 +60,25 @@
                                 @endif
                             </p>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="text-muted small">{{ __('Floor') }}</label>
                             <p class="mb-0">{{ $unit->floor->floor_name ?? 'Floor ' . $unit->floor->floor_number }}</p>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="text-muted small">{{ __('Covered Area') }}</label>
                             <p class="mb-0">
                                 {{ $unit->covered_area ? number_format($unit->covered_area, 2) . ' sq ft' : '-' }}</p>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="text-muted small">{{ __('Price/Sqft') }}</label>
                             <p class="mb-0">
                                 {{ $unit->price_per_sqft ? 'PKR ' . number_format($unit->price_per_sqft, 2) : '-' }}</p>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="text-muted small">{{ __('Total Price') }}</label>
                             <p class="mb-0 fw-bold text-success">{{ 'PKR ' . number_format($unit->price, 2) }}</p>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="text-muted small">{{ __('Facing') }}</label>
                             <p class="mb-0">{{ $unit->facing ?? '-' }}</p>
                         </div>

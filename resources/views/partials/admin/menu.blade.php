@@ -874,6 +874,11 @@
                                     <a class="dash-link"
                                         href="{{ route('re-reports.installment-upcoming') }}">{{ __('Upcoming Due Report') }}</a>
                                 </li>
+                                <li
+                                    class="dash-item {{ Request::route()->getName() == 're-reports.customer-ledger' ? 'active' : '' }}">
+                                    <a class="dash-link"
+                                        href="{{ route('re-reports.customer-ledger') }}">{{ __('Customer Ledger') }}</a>
+                                </li>
                             </ul>
                         </li>
                     </ul>

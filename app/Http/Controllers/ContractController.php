@@ -475,78 +475,334 @@ class ContractController extends Controller
 
     public function edit(Contract $contract)
     {
+        $creatorId = \Auth::user()->creatorId();
+        $ownedId = \Auth::user()->ownedId();
+
         if (\Auth::user()->type == 'company') {
-            $contractTypes = ContractType::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $clients = User::where('type', 'client')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $project = Project::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('project_name', 'id');
+            $contractTypes = ContractType::where('created_by', '=', $creatorId)->get()->pluck('name', 'id');
+            $clients = User::where('type', 'client')->where('created_by', $creatorId)->get()->pluck('name', 'id');
+            $project = Project::where('created_by', '=', $creatorId)->get()->pluck('project_name', 'id');
         } else {
-            $contractTypes = ContractType::where('owned_by', '=', \Auth::user()->ownedId())->get()->pluck('name', 'id');
-            $clients = User::where('type', 'client')->where('owned_by', \Auth::user()->ownedId())->get()->pluck('name', 'id');
-            $project = Project::where('owned_by', '=', \Auth::user()->ownedId())->get()->pluck('project_name', 'id');
+            $contractTypes = ContractType::where('owned_by', '=', $ownedId)->get()->pluck('name', 'id');
+            $clients = User::where('type', 'client')->where('owned_by', $ownedId)->get()->pluck('name', 'id');
+            $project = Project::where('owned_by', '=', $ownedId)->get()->pluck('project_name', 'id');
         }
-        $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'contract')->get();
+        
+        $customFields = CustomField::where('created_by', '=', $creatorId)->where('module', '=', 'contract')->get();
         $contract->customField = CustomField::getData($contract, 'contract')->toArray();
-        return view('contract.edit', compact('contractTypes', 'clients', 'contract', 'project', 'customFields'));
+
+        // Real Estate Specific Data
+        $projects = \App\Models\ReProject::where('created_by', $creatorId)->get()->pluck('name', 'id');
+        $all_customers = \App\Models\Customer::where('created_by', $creatorId)->get();
+        
+        $towers = [];
+        $floors = [];
+        $units = [];
+        $payment_plans = [];
+
+        if ($contract->re_project_id) {
+            $towers = \App\Models\ReTower::where('re_project_id', $contract->re_project_id)->pluck('tower_name', 'id')->toArray();
+            $floors = \App\Models\ReFloor::where('re_project_id', $contract->re_project_id);
+            if ($contract->tower_id) {
+                $floors = $floors->where('re_tower_id', $contract->tower_id);
+            }
+            $floors = $floors->pluck('floor_name', 'id')->toArray();
+            
+            if ($contract->floor_id) {
+                $units = \App\Models\ReUnit::where('re_floor_id', $contract->floor_id)
+                    ->get()
+                    ->mapWithKeys(function($u) use ($contract) {
+                        // Include current unit even if sold, and other available units
+                        if ($u->id == $contract->unit_id || $u->status != 'Sold') {
+                            return [$u->id => $u->unit_number . ' (' . $u->status . ')'];
+                        }
+                        return [];
+                    })->toArray();
+            }
+
+            $payment_plans = \App\Models\RePaymentPlan::whereHas('projects', function($q) use ($contract) {
+                $q->where('re_projects.id', $contract->re_project_id);
+            })->where('is_active', true)->get();
+        }
+
+        // Joint Owners
+        $joint_owners = \App\Models\ContractOwner::where('contract_id', $contract->id)
+            ->where('role', 'Secondary')
+            ->with('customer')
+            ->get();
+
+        return view('contract.edit', compact(
+            'contractTypes', 'clients', 'contract', 'project', 'customFields',
+            'projects', 'all_customers', 'towers', 'floors', 'units', 'payment_plans', 'joint_owners'
+        ));
     }
 
 
     public function update(Request $request, Contract $contract)
     {
-        \DB::beginTransaction();
-        try {
-            if(\Auth::user()->can('edit contract'))
-            {
-                $validator = \Validator::make(
-                    $request->all(), [
-                        'client_name' => 'required',
-                        'subject' => 'required',
-                        'type' => 'required',
-                        'value' => 'required',
-                        'start_date' => 'required',
-                        'end_date' => 'required',
-                    ]
-                );
+        if (!\Auth::user()->can('edit contract')) {
+            return response()->json(['success' => false, 'message' => __('Permission denied.')], 403);
+        }
 
-                if($validator->fails())
-                {
-                    $messages = $validator->getMessageBag();
-                    return response()->json(['error' => $messages->first()], 422);
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'full_name' => 'required|string|max:191',
+                'cnic_number' => 'required|string|max:191',
+                'email' => 'required|email|max:191',
+                'mobile_primary' => 'required|string|max:191',
+                'subject' => 'required|string|max:191',
+                'project_id' => 'required',
+                'unit_id' => 'required',
+                'sale_price' => 'required|numeric|min:0',
+                'booking_date' => 'required|date',
+            ]
+        );
+
+        if ($validator->fails()) {
+            $messages = $validator->getMessageBag();
+            return response()->json(['success' => false, 'message' => $messages->first()], 422);
+        }
+
+        $creatorId = \Auth::user()->creatorId();
+        $ownedId = \Auth::user()->ownedId();
+
+        try {
+            DB::beginTransaction();
+
+            // 1. Check for existing invoices if installment plan details are changing
+            $hasInvoices = $contract->installments()->whereNotNull('invoice_id')->exists();
+            $planChanged = false;
+
+            if ($contract->sale_price != $request->sale_price ||
+                $contract->payment_plan_type != $request->payment_plan_type ||
+                $contract->booking_date != $request->booking_date ||
+                $request->has('down_payment_amount') && optional($contract->installment_plan)->down_payment_amount != $request->down_payment_amount ||
+                $request->has('installment_count') && optional($contract->installment_plan)->installment_count != $request->installment_count ||
+                $request->has('installment_frequency') && optional($contract->installment_plan)->installment_frequency != $request->installment_frequency
+            ) {
+                $planChanged = true;
+            }
+
+            if ($hasInvoices && $planChanged) {
+                return response()->json(['success' => false, 'message' => __('Cannot update pricing or installment plan because invoices have already been generated for this contract.')], 422);
+            }
+
+            // 2. Update Primary Customer
+            $customer = $contract->customer;
+            if ($customer) {
+                $customer->fill($request->only([
+                    'client_type', 'full_name', 'father_or_spouse_name', 'date_of_birth',
+                    'nationality', 'cnic_number', 'mobile_primary', 'email',
+                    'current_address', 'permanent_address'
+                ]));
+                $customer->name = $request->full_name;
+                $customer->contact = $request->mobile_primary;
+                $customer->save();
+            }
+
+            // 3. Handle Unit Change
+            if ($contract->unit_id != $request->unit_id) {
+                // Revert old unit
+                $oldUnit = \App\Models\ReUnit::find($contract->unit_id);
+                if ($oldUnit) {
+                    $oldUnit->status = 'Available'; // Or whatever the previous logic was
+                    $oldUnit->save();
                 }
 
-                $contract->client_name      = $request->client_name;
-                $contract->subject          = $request->subject;
-                $contract->project_id       = $request->project_id;
-                $contract->type             = $request->type;
-                $contract->value            = $request->value;
-                $contract->start_date       = $request->start_date;
-                $contract->end_date         = $request->end_date;
-                $contract->description      = $request->description;
-                $contract->save();
+                // Set new unit
+                $newUnit = \App\Models\ReUnit::find($request->unit_id);
+                if ($newUnit) {
+                    $newUnit->status = 'Sold';
+                    $newUnit->save();
+                }
 
-                CustomField::saveData($contract, $request->customField);
-                Utility::makeActivityLog(\Auth::user()->id,'Contract',$contract->id,'Update Contract',$contract->subject);
-                
-                // Convert the contract model to an array and ensure it has an 'id' key
-                $contractArray = $contract->toArray();
-                $contractArray['id'] = $contract->id; // Ensure 'id' is set
-                
-                // Pass the contract as an array with the 'id' key
-                $html = view('contract.appendrow', ['contract' => $contractArray])->render();
-                
-                $data = [
-                    'datarow' => $html,
-                    'table_id' => "contract-table",
-                    'action' => 'edit',
-                    'row_id' => $contract->id,
-                ];
-                \DB::commit();
-                return response()->json(['success' => true, 'message' => __('Contract successfully updated.'), 'data' => $data]);
-            } else {
-                return response()->json(['success' => false, 'message' => __('Permission denied.')], 403);
+                // Update ReBooking if exists
+                $reBooking = \App\Models\ReBooking::where('deal_id', $contract->deal_id)->first();
+                if ($reBooking) {
+                    $reBooking->unit_id = $request->unit_id;
+                    $reBooking->save();
+                }
             }
+
+            // 4. Update Contract
+            $contract->fill($request->only([
+                'subject', 'tower_id', 'floor_id', 'unit_id',
+                'sale_price', 'booking_date', 'agreement_date', 'possession_due_date',
+                'payment_plan_type'
+            ]));
+
+            $contract->re_project_id = $request->project_id;
+            $contract->project_id = $request->project_id; // alignment
+            $contract->value = $request->sale_price;
+            $contract->net_sale_price = $request->sale_price;
+            $contract->start_date = $request->booking_date;
+            $contract->end_date = $request->possession_due_date ?? $contract->end_date;
+            $contract->type = $request->type ?? $contract->type;
+            $contract->description = $request->description;
+            $contract->save();
+
+            // 5. Update Joint Owners
+            if ($request->has('joint_owners')) {
+                // Delete existing secondary owners and recreate
+                \App\Models\ContractOwner::where('contract_id', $contract->id)->where('role', 'Secondary')->delete();
+
+                $totalJointPercent = 0;
+                foreach ($request->joint_owners as $jo) {
+                    if (empty($jo['name']) || empty($jo['cnic'])) continue;
+
+                    $jCustomer = \App\Models\Customer::where('cnic_number', $jo['cnic'])
+                        ->where('created_by', $creatorId)
+                        ->first();
+                    
+                    if (!$jCustomer) {
+                        $jCustomer = new \App\Models\Customer();
+                        $latestJ = \App\Models\Customer::where('created_by', $creatorId)->latest()->first();
+                        $jCustomer->customer_id = $latestJ ? $latestJ->customer_id + 1 : 1;
+                    }
+
+                    $jCustomer->full_name = $jo['name'];
+                    $jCustomer->name = $jo['name'];
+                    $jCustomer->cnic_number = $jo['cnic'];
+                    $jCustomer->mobile_primary = $jo['phone'];
+                    $jCustomer->created_by = $creatorId;
+                    $jCustomer->owned_by = $ownedId;
+                    $jCustomer->is_active = 1;
+                    $jCustomer->save();
+
+                    \App\Models\ContractOwner::create([
+                        'contract_id' => $contract->id,
+                        'customer_id' => $jCustomer->id,
+                        'ownership_percent' => $jo['percent'] ?? 0,
+                        'role' => 'Secondary'
+                    ]);
+                    $totalJointPercent += ($jo['percent'] ?? 0);
+                }
+
+                // Update Primary Owner percentage
+                $primaryOwner = \App\Models\ContractOwner::where('contract_id', $contract->id)->where('role', 'Primary')->first();
+                if ($primaryOwner) {
+                    $primaryOwner->ownership_percent = 100 - $totalJointPercent;
+                    $primaryOwner->save();
+                }
+            }
+
+            // 6. Update/Re-generate Installment Plan (if changed and allowed)
+            if ($planChanged && !$hasInvoices) {
+                // Delete existing installments (that don't have invoices, which is all of them based on $hasInvoices check)
+                $contract->installments()->delete();
+
+                $installmentPlan = $contract->installment_plan;
+                if (!$installmentPlan) {
+                    $installmentPlan = new \App\Models\FrozenInstallmentPlan();
+                    $installmentPlan->contract_id = $contract->id;
+                }
+
+                $installmentPlan->fill([
+                    'down_payment_amount' => $request->down_payment_amount ?? 0,
+                    'down_payment_due_date' => $request->booking_date,
+                    'installment_count' => $request->installment_count ?? 1,
+                    'installment_frequency' => $request->installment_frequency ?? 'Monthly',
+                    'installment_amount' => $request->installment_amount ?? 0,
+                    'total_payable' => $request->sale_price,
+                    'plan_start_date' => $request->booking_date,
+                ]);
+                $installmentPlan->save();
+
+                // Re-generate Schedule
+                if ($request->payment_plan_type === 'Installment') {
+                    $this->generateInstallmentScheduleSync($contract, $installmentPlan, $request->unit_id);
+                }
+            }
+
+            CustomField::saveData($contract, $request->customField);
+            Utility::makeActivityLog(\Auth::user()->id, 'Contract', $contract->id, 'Update Contract', $contract->subject);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => __('Contract successfully updated.'),
+                'redirect' => route('contract.show', $contract->id)
+            ]);
+
         } catch (\Exception $e) {
-            \DB::rollback();
-            return response()->json(['success' => false, 'message' => __('An error occurred.'), 'exception' => $e->getMessage()], 500);
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Helper to generate installment schedule (synced version)
+     */
+    private function generateInstallmentScheduleSync($contract, $installmentPlan, $unitId)
+    {
+        $creatorId = \Auth::user()->creatorId();
+        $ownedId = \Auth::user()->ownedId();
+        
+        $frequency = $installmentPlan->installment_frequency ?? 'Monthly';
+        $frequencyMonths = match($frequency) {
+            'Monthly' => 1,
+            'Quarterly' => 3,
+            'Half-Yearly', '6 Months' => 6,
+            'Yearly' => 12,
+            default => 1,
+        };
+        
+        $startDate = $installmentPlan->plan_start_date 
+            ? \Carbon\Carbon::parse($installmentPlan->plan_start_date)
+            : \Carbon\Carbon::now();
+        
+        $installmentNumber = 1;
+        
+        if ($installmentPlan->down_payment_amount > 0) {
+            \App\Models\ContractInstallment::create([
+                'contract_id' => $contract->id,
+                'unit_id' => $unitId,
+                'installment_number' => $installmentNumber,
+                'installment_type' => 'down_payment',
+                'amount' => $installmentPlan->down_payment_amount,
+                'issue_date' => $startDate->copy(),
+                'due_date' => $installmentPlan->down_payment_due_date ?: $startDate->copy()->addDays(7),
+                'status' => 'pending',
+                'description' => 'Down Payment',
+                'created_by' => $creatorId,
+                'owned_by' => $ownedId,
+            ]);
+            $installmentNumber++;
+        }
+        
+        $numInstallments = $installmentPlan->installment_count ?? 0;
+        $totalPayable = $installmentPlan->total_payable ?? 0;
+        $downPayment = $installmentPlan->down_payment_amount ?? 0;
+        $remainingAmount = $totalPayable - $downPayment;
+        $installmentAmount = $numInstallments > 0 ? round($remainingAmount / $numInstallments, 2) : 0;
+        $totalDisbursed = $downPayment;
+        
+        for ($i = 0; $i < $numInstallments; $i++) {
+            $issueDate = $startDate->copy()->addMonths($frequencyMonths * $i);
+            $dueDate = $issueDate->copy()->addDays(15);
+            
+            $amount = $installmentAmount;
+            if ($i == $numInstallments - 1) {
+                $amount = round($totalPayable - $totalDisbursed, 2);
+            }
+            $totalDisbursed += $amount;
+            
+            \App\Models\ContractInstallment::create([
+                'contract_id' => $contract->id,
+                'unit_id' => $unitId,
+                'installment_number' => $installmentNumber,
+                'installment_type' => 'installment',
+                'amount' => $amount,
+                'issue_date' => $issueDate,
+                'due_date' => $dueDate,
+                'status' => 'pending',
+                'description' => 'Installment #' . ($i + 1),
+                'created_by' => $creatorId,
+                'owned_by' => $ownedId,
+            ]);
+            $installmentNumber++;
         }
     }
 

@@ -1979,6 +1979,8 @@ Route::group(['middleware' => ['verified']], function () {
         Route::get('/installment-plans', [\App\Http\Controllers\ReReportController::class, 'installmentPlans'])->name('re-reports.installment-plans');
         Route::get('/installment-overdue', [\App\Http\Controllers\ReReportController::class, 'installmentOverdue'])->name('re-reports.installment-overdue');
         Route::get('/installment-upcoming', [\App\Http\Controllers\ReReportController::class, 'installmentUpcoming'])->name('re-reports.installment-upcoming');
+        Route::get('/customer-ledger', [\App\Http\Controllers\ReReportController::class, 'customerLedger'])->name('re-reports.customer-ledger');
+        Route::get('/customer-statement-print/{id}', [\App\Http\Controllers\ReReportController::class, 'customerStatementPrint'])->name('re-reports.customer-statement-print');
     });
 });
 
