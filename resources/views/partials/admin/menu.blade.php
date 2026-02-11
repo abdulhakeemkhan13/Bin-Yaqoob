@@ -829,6 +829,12 @@
                             <a class="dash-link"
                                 href="{{ route('re-payment-plans.index') }}">{{ __('Payment Plans') }}</a>
                         </li>
+                        {{-- @can('manage commission') --}}
+                            <li class="dash-item {{ Request::segment(1) == 'commission' ? 'active' : '' }}">
+                                <a class="dash-link"
+                                    href="{{ route('commission.index') }}">{{ __('Commissions') }}</a>
+                            </li>
+                        {{-- @endcan --}}
                         <li
                             class="dash-item dash-hasmenu {{ Request::segment(1) == 're-reports' ? 'active dash-trigger' : '' }}">
                             <a class="dash-link" href="#">{{ __('Reports') }}<span class="dash-arrow"><i
@@ -1556,15 +1562,15 @@
                                             </ul>
                                         </li>
                                         <!-- <li
-                                class="dash-item {{ Request::route()->getName() == 'journal-entry.edit' ||
-                                Request::route()->getName() == 'journal-entry.create' ||
-                                Request::route()->getName() == 'journal-entry.index' ||
-                                Request::route()->getName() == 'journal-entry.show'
-                                    ? ' active'
-                                    : '' }}">
-                                <a class="dash-link"
-                                    href="{{ route('journal-entry.index') }}">{{ __('Journal Account') }}</a>
-                            </li> -->
+                            class="dash-item {{ Request::route()->getName() == 'journal-entry.edit' ||
+                            Request::route()->getName() == 'journal-entry.create' ||
+                            Request::route()->getName() == 'journal-entry.index' ||
+                            Request::route()->getName() == 'journal-entry.show'
+                                ? ' active'
+                                : '' }}">
+                            <a class="dash-link"
+                                href="{{ route('journal-entry.index') }}">{{ __('Journal Account') }}</a>
+                        </li> -->
                                         <li
                                             class="dash-item {{ Request::route()->getName() == 'report.ledger' ? ' active' : '' }}">
                                             <a class="dash-link"

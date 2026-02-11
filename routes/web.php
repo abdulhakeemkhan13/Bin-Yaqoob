@@ -600,6 +600,8 @@ Route::group(['middleware' => ['verified']], function () {
     );
 
     Route::resource('taxes', TaxController::class)->middleware(['auth', 'XSS', 'revalidate']);
+    Route::get('commission/{id}/release', [CommissionController::class, 'release'])->name('commission.release')->middleware(['auth', 'XSS', 'revalidate']);
+    Route::resource('commission', CommissionController::class)->middleware(['auth', 'XSS', 'revalidate']);
 
     Route::resource('product-category', ProductServiceCategoryController::class)->middleware(['auth', 'XSS', 'revalidate']);
 

@@ -1054,6 +1054,24 @@ public function createPayment(Request $request, $invoice_id)
         if ($due <= 0) {
             $invoice->status = 4;
             $invoice->save();
+            
+            // Link back to installment if it exists and mark as paid
+            if ($invoice->installment_id) {
+                $installment = \App\Models\ContractInstallment::find($invoice->installment_id);
+                if ($installment) {
+                    $installment->status = 'paid';
+                    $installment->paid_date = $request->date;
+                    $installment->save();
+                    
+                    // Trigger commission release check for this contract
+                    if ($installment->contract_id) {
+                        \App\Models\Commission::autoUpdateReleases($installment->contract_id);
+                    }
+                }
+            } elseif ($invoice->contract_id) {
+                // Also trigger for contracts linked directly to invoice without specific installment
+                \App\Models\Commission::autoUpdateReleases($invoice->contract_id);
+            }
         } else {
             $invoice->status = 3;
             $invoice->save();
