@@ -53,6 +53,24 @@ class JournalEntry extends Model
 
         return $total;
     }
+ /**
+     * Scope to filter by module
+     */
+    public function scopeByModule($query, $module)
+    {
+        return $query->where('module', $module);
+    }
 
+    /**
+     * Scope to filter by reference
+     */
+    public function scopeByReference($query, $referenceId, $category = null)
+    {
+        $query->where('reference_id', $referenceId);
+        if ($category) {
+            $query->where('category', $category);
+        }
+        return $query;
+    }
 
 }

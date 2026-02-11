@@ -78,6 +78,8 @@ use App\Http\Controllers\CashReciptVoucherController;
 use App\Http\Controllers\BankReciptVoucherController;
 use App\Http\Controllers\CashPaymentVoucherController;
 use App\Http\Controllers\BankPaymentVoucherController;
+use App\Http\Controllers\sync\VoucherController;
+use App\Http\Controllers\sync\TrialBalanceController;
 use App\Http\Controllers\KhaltiController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\LanguageController;
@@ -219,6 +221,27 @@ Route::put('salarytax/{salarytax}', [SalaryTaxController::class, 'update'])
 Route::delete('salarytax/{salarytax}', [SalaryTaxController::class, 'destroy'])
     ->name('salarytax.destroy');
 
+Route::get('/ledger', [VoucherController::class, 'ledger'])->name('ledger.index');
+Route::get('/trial-balance', [TrialBalanceController::class, 'index'])->name('trial-balance.index');
+Route::get('/profit-loss', [VoucherController::class, 'profitLoss'])->name('reports.profit_loss');
+Route::get('/balance-sheet', [VoucherController::class, 'balanceSheet'])->name('balance-sheet.index');
+Route::get('/cash-flow', [VoucherController::class, 'cashFlow'])->name('cash-flow.index');
+Route::get('/general-journal', [VoucherController::class, 'generalJournal'])->name('general-journal.index');
+Route::get('general-journal/export', [VoucherController::class, 'exportGeneralJournal'])->name('general-journal.export');
+Route::get('balance-sheet-standard', [VoucherController::class, 'balanceSheetStandard'])->name('balance-sheet-standard.index');
+Route::get('balance-sheet-standard/export', [VoucherController::class, 'exportBalanceSheetStandard'])->name('balance-sheet-standard.export');
+Route::get('balance-sheet-detail', [VoucherController::class, 'balanceSheetDetail'])->name('balance-sheet-detail.index');
+Route::get('balance-sheet-detail/export', [VoucherController::class, 'exportBalanceSheetDetail'])->name('balance-sheet-detail.export');
+Route::get('profit-loss-detail', [VoucherController::class, 'profitLossDetail'])->name('profit-loss-detail.index');
+Route::get('profit-loss-detail/export', [VoucherController::class, 'exportProfitLossDetail'])->name('profit-loss-detail.export');
+Route::get('profit-loss-report/{view?}/{collapseView?}', [ReportController::class, 'profitLoss'])->name('report.profit.loss');
+Route::get('profit-loss-by-month/{view?}/{collapseView?}', [VoucherController::class, 'profitLossByMonth'])->name('profit-loss-by-month');
+Route::get('profit-loss-comparison/{view?}/{collapseView?}', [VoucherController::class, 'profitLossComparison'])->name('profit-loss-comparison');
+Route::get('profit-loss-quaterly/{view?}/{collapseView?}', [VoucherController::class, 'profitLossQuaterly'])->name('profit-loss-quaterly');
+Route::get('/Journalledger', [VoucherController::class, 'Journalledger'])->name('Journalledger.index');
+    // Abdullah Excel Export Route
+Route::post('/export-datatable', [VoucherController::class, 'ExportReport'])->name('export.datatable');
+Route::get('balance-sheet-comparison', [VoucherController::class, 'balanceSheetComparison'])->name('balance-sheet-comparison.index');
 
 // EOBI
 Route::get('eobis/create/{employee}', [EobiController::class, 'create'])->name('eobi.create');
@@ -599,9 +622,15 @@ Route::group(['middleware' => ['verified']], function () {
         }
     );
 
+    Route::get('import/file', [JobStageController::class, 'importFile'])->name('job-stage.file.import');
+    Route::post('import', [JobStageController::class, 'import'])->name('job-stage.import');
+    Route::get('import/file', [JobStageController::class, 'importFile'])->name('job-stage.file.import');
+    Route::post('import', [JobStageController::class, 'import'])->name('job-stage.import');
+
     Route::resource('taxes', TaxController::class)->middleware(['auth', 'XSS', 'revalidate']);
     Route::get('commission/{id}/release', [CommissionController::class, 'release'])->name('commission.release')->middleware(['auth', 'XSS', 'revalidate']);
     Route::resource('commission', CommissionController::class)->middleware(['auth', 'XSS', 'revalidate']);
+   
 
     Route::resource('product-category', ProductServiceCategoryController::class)->middleware(['auth', 'XSS', 'revalidate']);
 

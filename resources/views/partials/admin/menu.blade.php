@@ -830,10 +830,10 @@
                                 href="{{ route('re-payment-plans.index') }}">{{ __('Payment Plans') }}</a>
                         </li>
                         {{-- @can('manage commission') --}}
-                            <li class="dash-item {{ Request::segment(1) == 'commission' ? 'active' : '' }}">
-                                <a class="dash-link"
-                                    href="{{ route('commission.index') }}">{{ __('Commissions') }}</a>
-                            </li>
+                        <li class="dash-item {{ Request::segment(1) == 'commission' ? 'active' : '' }}">
+                            <a class="dash-link"
+                                href="{{ route('commission.index') }}">{{ __('Commissions') }}</a>
+                        </li>
                         {{-- @endcan --}}
                         <li
                             class="dash-item dash-hasmenu {{ Request::segment(1) == 're-reports' ? 'active dash-trigger' : '' }}">
@@ -1561,36 +1561,83 @@
                                                 </li>
                                             </ul>
                                         </li>
-                                        <!-- <li
-                            class="dash-item {{ Request::route()->getName() == 'journal-entry.edit' ||
-                            Request::route()->getName() == 'journal-entry.create' ||
-                            Request::route()->getName() == 'journal-entry.index' ||
-                            Request::route()->getName() == 'journal-entry.show'
-                                ? ' active'
-                                : '' }}">
-                            <a class="dash-link"
-                                href="{{ route('journal-entry.index') }}">{{ __('Journal Account') }}</a>
-                        </li> -->
-                                        <li
-                                            class="dash-item {{ Request::route()->getName() == 'report.ledger' ? ' active' : '' }}">
-                                            <a class="dash-link"
-                                                href="{{ route('report.ledger', 0) }}">{{ __('Ledger Summary') }}</a>
-                                        </li>
-                                        <li
-                                            class="dash-item {{ Request::route()->getName() == 'report.balance.sheet' ? ' active' : '' }}">
-                                            <a class="dash-link"
-                                                href="{{ route('report.balance.sheet') }}">{{ __('Balance Sheet') }}</a>
-                                        </li>
-                                        <li
-                                            class="dash-item {{ Request::route()->getName() == 'report.profit.loss' ? ' active' : '' }}">
-                                            <a class="dash-link"
-                                                href="{{ route('report.profit.loss') }}">{{ __('Profit & Loss') }}</a>
-                                        </li>
-
-                                        <li
-                                            class="dash-item {{ Request::route()->getName() == 'trial.balance' ? ' active' : '' }}">
-                                            <a class="dash-link"
-                                                href="{{ route('trial.balance') }}">{{ __('Trial Balance') }}</a>
+                                        <li class="dash-item dash-hasmenu ">
+                                            <a class="dash-link {{ Request::segment(1) == 'ledger' || Request::segment(1) == 'trial-balance' || Request::segment(1) == 'profit-loss' || Request::segment(1) == 'balance-sheet' || Request::segment(1) == 'cash-flow' || Request::segment(1) == 'general-journal' ? 'active dash-trigger' : '' }}"
+                                                href="#financial_reports">{{ __('Financial Reports') }}<span
+                                                    class="dash-arrow"><i
+                                                        data-feather="chevron-right"></i></span></a>
+                                            <ul id="financial_reports" class="dash-submenu">
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'ledger.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('ledger.index') }}">{{ __('Ledger') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'trial-balance.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('trial-balance.index') }}">{{ __('Trial Balance') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'reports.profit_loss' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('reports.profit_loss') }}">{{ __('Profit & Loss') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'profit-loss-detail.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('profit-loss-detail.index') }}">{{ __('Profit & Loss Detail') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'profit-loss-by-month' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('profit-loss-by-month') }}">{{ __('Profit & Loss By Month') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'profit-loss-comparison' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('profit-loss-comparison') }}">{{ __('Profit & Loss Comparison') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'profit-loss-quaterly' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('profit-loss-quaterly') }}">{{ __('Profit & Loss Quaterly') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'balance-sheet.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('balance-sheet.index') }}">{{ __('Balance Sheet') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'balance-sheet-standard.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('balance-sheet-standard.index') }}">{{ __('Balance Sheet Standard') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'balance-sheet-detail.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('balance-sheet-detail.index') }}">{{ __('Balance Sheet Detail') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'balance-sheet-comparison.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('balance-sheet-comparison.index') }}">{{ __('Balance Sheet Comparison') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'cash-flow.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('cash-flow.index') }}">{{ __('Cash Flow') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'general-journal.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('general-journal.index') }}">{{ __('General Journal') }}</a>
+                                                </li>
+                                                <li
+                                                    class="dash-item {{ Request::route()->getName() == 'Journalledger.index' ? ' active' : '' }}">
+                                                    <a class="dash-link"
+                                                        href="{{ route('Journalledger.index') }}">{{ __('Journal Ledger') }}</a>
+                                                </li>
+                                            </ul>
                                         </li>
                                     </ul>
                                 </li>

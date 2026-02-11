@@ -46,6 +46,8 @@
         "twilio/sdk": "^6.43",
         "whichbrowser/parser": "^2.1",
         "xendit/xendit-php": "^2.19",
+        "yajra/laravel-datatables-buttons": "^10.0",
+        "yajra/laravel-datatables-oracle": "^10.11",
         "yoomoney/yookassa-sdk-php": "^3.1"
     },
     "require-dev": {

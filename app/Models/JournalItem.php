@@ -11,9 +11,15 @@ class JournalItem extends Model
         'account',
         'description',
         'product_ids',
+        'product_id',
         'prod_tax_id',
         'debit',
         'credit',
+        'type',
+        'name',
+        'customer_id',
+        'vendor_id',
+        'employee_id',
         're_project_id',
         'tower_id',
         'floor_id',
@@ -25,5 +31,9 @@ class JournalItem extends Model
         return $this->hasOne('App\Models\ChartOfAccount', 'id', 'account');
     }
 
+    public function journalEntry()
+    {
+        return $this->hasOne('App\Models\JournalEntry', 'id', 'journal');
+    }
 
 }
